@@ -30,9 +30,7 @@ class CreateUserResponse(UseCaseResponse):
 
 class CreateUser(UseCase):
     def _get_context_vars(self, request: UseCaseRequest) -> dict[str, Any]:
-        """
-        Формирует контекстные переменные для создания пользователя.
-        """
+        """Forms context variables for user creation."""
         return {
             'email': request.email,
             'first_name': request.first_name,
@@ -40,9 +38,7 @@ class CreateUser(UseCase):
         }
 
     def _execute(self, request: CreateUserRequest) -> CreateUserResponse:
-        """
-        Основной метод создания пользователя с обработкой ошибок и транзакцией.
-        """
+        """Basic method of creating a user with error handling and transaction."""
         logger.info("creating a new user", email=request.email)
 
         try:
@@ -64,9 +60,7 @@ class CreateUser(UseCase):
 
     @staticmethod
     def _log_event(user: User) -> None:
-        """
-        Логирование события создания пользователя.
-        """
+        """Logging the user creation event."""
         try:
             with EventLogClient.init() as client:
                 client.insert(

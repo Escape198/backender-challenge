@@ -5,10 +5,10 @@ from core.models import TimeStampedModel
 
 class User(TimeStampedModel, AbstractBaseUser):
     email = models.EmailField(unique=True, db_index=True)
-    is_staff = models.BooleanField(default=False, help_text="Права доступа администратора")
-    is_active = models.BooleanField(default=True, help_text="Активность пользователя")
-    first_name = models.CharField(max_length=255, blank=True, null=True, help_text="Имя пользователя")
-    last_name = models.CharField(max_length=255, blank=True, null=True, help_text="Фамилия пользователя")
+    is_staff = models.BooleanField(default=False, help_text="Administrator access")
+    is_active = models.BooleanField(default=True, help_text="User activity")
+    first_name = models.CharField(max_length=255, blank=True, null=True, help_text="User Name")
+    last_name = models.CharField(max_length=255, blank=True, null=True, help_text="User's last name")
 
     EMAIL_FIELD = 'email'
     USERNAME_FIELD = 'email'
