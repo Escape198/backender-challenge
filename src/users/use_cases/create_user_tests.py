@@ -66,3 +66,14 @@ def test_event_log_entry_published(f_use_case: CreateUser, f_ch_client: Client) 
             1,
         ),
     ]
+
+
+def test_empty_request_handling(f_use_case: CreateUser) -> None:
+    """Verify that an empty or invalid request is properly handled."""
+    request = CreateUserRequest(email="", first_name="", last_name="")
+
+    response = f_use_case.execute(request)
+
+    assert response.result is None
+    assert response.error != ""
+    assert "email" in response.error.lower()

@@ -38,8 +38,11 @@ class CreateUser(UseCase):
         }
 
     def _execute(self, request: CreateUserRequest) -> CreateUserResponse:
-        """Basic method of creating a user with error handling and transaction."""
         logger.info("creating a new user", email=request.email)
+
+        if not request.email.strip():
+            logger.error("invalid request: email is required")
+            return CreateUserResponse(error="Email is required")
 
         try:
             with transaction.atomic():
