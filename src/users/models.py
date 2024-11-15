@@ -1,22 +1,25 @@
 from django.contrib.auth.models import AbstractBaseUser
 from django.db import models
-
 from core.models import TimeStampedModel
 
 
 class User(TimeStampedModel, AbstractBaseUser):
     email = models.EmailField(unique=True, db_index=True)
-    is_staff = models.BooleanField(default=False)
-    is_active = models.BooleanField(default=True)
-    first_name = models.CharField(max_length=255, blank=True, null=True)
-    last_name = models.CharField(max_length=255, blank=True, null=True)
+    is_staff = models.BooleanField(default=False, help_text="Права доступа администратора")
+    is_active = models.BooleanField(default=True, help_text="Активность пользователя")
+    first_name = models.CharField(max_length=255, blank=True, null=True, help_text="Имя пользователя")
+    last_name = models.CharField(max_length=255, blank=True, null=True, help_text="Фамилия пользователя")
 
     EMAIL_FIELD = 'email'
     USERNAME_FIELD = 'email'
 
-    class Meta(AbstractBaseUser.Meta):
+    class Meta:
         verbose_name = 'User'
         verbose_name_plural = 'Users'
+
+        indexes = [
+            models.Index(fields=['is_active', 'is_staff'], name='user_status_idx'),
+        ]
 
     def __str__(self) -> str:
         if all([self.first_name, self.last_name]):
