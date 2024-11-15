@@ -2,6 +2,8 @@ from typing import Any
 
 import structlog
 from django.db import transaction
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
 
 from core.base_model import Model
 from core.event_log_client import EventLogClient
@@ -40,9 +42,16 @@ class CreateUser(UseCase):
     def _execute(self, request: CreateUserRequest) -> CreateUserResponse:
         logger.info("creating a new user", email=request.email)
 
+        # Валидация входных данных
         if not request.email.strip():
             logger.error("invalid request: email is required")
             return CreateUserResponse(error="Email is required")
+
+        try:
+            validate_email(request.email)
+        except ValidationError:
+            logger.error("invalid request: invalid email format")
+            return CreateUserResponse(error="Invalid email format")
 
         if len(request.email) > 255:
             logger.error("invalid request: email is too long")

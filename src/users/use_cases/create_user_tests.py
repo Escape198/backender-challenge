@@ -89,3 +89,15 @@ def test_long_strings_handling(f_use_case: CreateUser) -> None:
     assert response.result is None
     assert response.error != ""
     assert "too long" in response.error.lower()
+
+
+def test_invalid_email_format(f_use_case: CreateUser) -> None:
+    """Verify that invalid email formats are properly handled."""
+    invalid_email = "invalid_email_format"  # Некорректный формат email
+    request = CreateUserRequest(email=invalid_email, first_name="Test", last_name="Testovich")
+
+    response = f_use_case.execute(request)
+
+    assert response.result is None
+    assert response.error != ""
+    assert "email" in response.error.lower()
