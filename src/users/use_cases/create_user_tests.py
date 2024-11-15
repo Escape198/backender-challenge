@@ -7,6 +7,7 @@ from clickhouse_connect.driver import Client
 from django.conf import settings
 
 from users.use_cases import CreateUser, CreateUserRequest, UserCreated
+from users.models import User
 
 pytestmark = [pytest.mark.django_db]
 

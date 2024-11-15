@@ -41,26 +41,26 @@ class CreateUser(UseCase):
 
     def _execute(self, request: CreateUserRequest) -> CreateUserResponse:
         """
-        Основной метод создания пользователя с обработкой ошибок и транзакциями.
+        Основной метод создания пользователя с обработкой ошибок и транзакцией.
         """
-        logger.info('creating a new user', email=request.email)
+        logger.info("creating a new user", email=request.email)
 
         try:
             with transaction.atomic():
                 user, created = User.objects.get_or_create(
-                    email=request.email, defaults={'first_name': request.first_name, 'last_name': request.last_name, }, )
+                    email=request.email, defaults={"first_name": request.first_name, "last_name": request.last_name, }, )
 
                 if created:
-                    logger.info('user has been created', user_id=user.id)
+                    logger.info("user has been created", user_id=user.id)
                     self._log_event(user)
                     return CreateUserResponse(result=user)
 
-                logger.warning('user already exists', email=request.email)
-                return CreateUserResponse(error='User with this email already exists')
+                logger.warning("user already exists", email=request.email)
+                return CreateUserResponse(error="User with this email already exists")
 
         except Exception as e:
-            logger.error('unexpected error during user creation', error=str(e))
-            return CreateUserResponse(error='An unexpected error occurred')
+            logger.error("unexpected error during user creation", error=str(e))
+            return CreateUserResponse(error="An unexpected error occurred")
 
     @staticmethod
     def _log_event(user: User) -> None:
