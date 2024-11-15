@@ -44,6 +44,14 @@ class CreateUser(UseCase):
             logger.error("invalid request: email is required")
             return CreateUserResponse(error="Email is required")
 
+        if len(request.email) > 255:
+            logger.error("invalid request: email is too long")
+            return CreateUserResponse(error="Email is too long")
+
+        if len(request.first_name) > 255 or len(request.last_name) > 255:
+            logger.error("invalid request: name fields are too long")
+            return CreateUserResponse(error="Name fields are too long")
+
         try:
             with transaction.atomic():
                 user, created = User.objects.get_or_create(

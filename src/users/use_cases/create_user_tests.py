@@ -77,3 +77,15 @@ def test_empty_request_handling(f_use_case: CreateUser) -> None:
     assert response.result is None
     assert response.error != ""
     assert "email" in response.error.lower()
+
+
+def test_long_strings_handling(f_use_case: CreateUser) -> None:
+    """Verify that overly long strings in the request are properly handled."""
+    long_string = "a" * 256
+    request = CreateUserRequest(email=f"{long_string}@email.com", first_name=long_string, last_name=long_string)
+
+    response = f_use_case.execute(request)
+
+    assert response.result is None
+    assert response.error != ""
+    assert "too long" in response.error.lower()
