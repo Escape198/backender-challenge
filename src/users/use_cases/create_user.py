@@ -77,35 +77,30 @@ class CreateUser(UseCase):
             event_data = []
 
             with transaction.atomic():
-                with transactional_outbox(event_data=event_data):
-                    user, created = User.objects.get_or_create(
-                        email=request.email,
-                        defaults={"first_name": request.first_name, "last_name": request.last_name},
-                    )
+                try:
+                    with transactional_outbox(event_data=event_data):
+                        user, created = User.objects.get_or_create(
+                            email=request.email,
+                            defaults={"first_name": request.first_name, "last_name": request.last_name}, )
 
-                    if created:
-                        logger.info(
-                            "user has been created",
-                            transaction_id=transaction_id,
-                            user_id=user.id,
-                            email=user.email,
-                        )
+                        if created:
+                            logger.info(
+                                "user has been created", transaction_id=transaction_id, user_id=user.id,
+                                email=user.email, )
 
-                        event_data.append(
-                            UserCreated(
-                                email=user.email,
-                                first_name=user.first_name,
-                                last_name=user.last_name,
+                            event_data.append(
+                                UserCreated(
+                                    email=user.email, first_name=user.first_name, last_name=user.last_name, )
                             )
-                        )
-                        return CreateUserResponse(result=user)
+                            return CreateUserResponse(result=user)
 
-                    logger.warning(
-                        "user already exists",
-                        transaction_id=transaction_id,
-                        email=request.email,
-                    )
-                    return self._error_response("User with this email already exists")
+                        logger.warning(
+                            "user already exists", transaction_id=transaction_id, email=request.email, )
+                        return self._error_response("User with this email already exists")
+                except Exception as outbox_error:
+                    logger.error(
+                        "transactional outbox failed", transaction_id=transaction_id, error=str(outbox_error), )
+                    raise
 
         except Exception as e:
             logger.error(
