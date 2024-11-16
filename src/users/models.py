@@ -8,7 +8,7 @@ class User(TimeStampedModel, AbstractBaseUser):
     Custom User model inheriting from AbstractBaseUser and TimeStampedModel.
     Provides the core fields required for authentication and user management.
     """
-    email = models.EmailField(unique=True, db_index=True)
+    email = models.EmailField(unique=True, db_index=True, help_text="The primary email used for user login.")
     is_staff = models.BooleanField(default=False, help_text="Indicates if the user has admin privileges")
     is_active = models.BooleanField(default=True, help_text="Indicates if the user account is active")
     first_name = models.CharField(max_length=255, blank=True, null=True, help_text="User's first name")
