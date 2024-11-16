@@ -10,9 +10,22 @@ from core.base_model import Model
 logger = structlog.get_logger(__name__)
 
 
-class UseCaseRequest(Model):
-    """The base class for all queries."""
-    pass
+class UseCase(ABC):
+    """Abstract class defining the interface for all Use Cases."""
+
+    def execute(self, request: UseCaseRequest) -> UseCaseResponse:
+        """Executes the Use Case."""
+        with structlog.contextvars.bound_contextvars(**self._get_context_vars(request)):
+            logger.info("Executing use case", use_case=self.__class__.__name__)
+            return self._execute(request)
+
+    def _get_context_vars(self, request: UseCaseRequest) -> Dict[str, Any]:
+        """Generates context variables for logging."""
+        return {"use_case": self.__class__.__name__}
+
+    @abstractmethod
+    def _execute(self, request: UseCaseRequest) -> UseCaseResponse:
+        pass
 
 
 class UseCaseResponse(Model):
@@ -59,6 +72,5 @@ class TransactionalUseCase(UseCase):
 
         Overrides the base execute method to wrap the operation in an atomic block.
         """
-        with structlog.contextvars.bound_contextvars(**self._get_context_vars(request)):
-            logger.info("Executing transactional use case", use_case=self.__class__.__name__)
-            return self._execute(request)
+        logger.info("Executing transactional use case", use_case=self.__class__.__name__)
+        return super().execute(request)
