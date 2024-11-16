@@ -5,9 +5,9 @@ from core.models import TimeStampedModel
 
 class User(TimeStampedModel, AbstractBaseUser):
     email = models.EmailField(unique=True, db_index=True)
-    is_staff = models.BooleanField(default=False, help_text="Admin access")
-    is_active = models.BooleanField(default=True, help_text="User activity")
-    first_name = models.CharField(max_length=255, blank=True, null=True, help_text="User activity")
+    is_staff = models.BooleanField(default=False, help_text="Indicates if the user has admin privileges")
+    is_active = models.BooleanField(default=True, help_text="Indicates if the user account is active")
+    first_name = models.CharField(max_length=255, blank=True, null=True, help_text="User's first name")
     last_name = models.CharField(max_length=255, blank=True, null=True, help_text="User's last name")
 
     EMAIL_FIELD = 'email'
