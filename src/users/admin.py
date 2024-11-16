@@ -9,11 +9,11 @@ class UserAdmin(admin.ModelAdmin):
     search_fields = ('email', 'first_name', 'last_name')
     list_filter = ('is_active', 'is_staff', 'created', 'modified')
     ordering = ('-last_login',)
-    readonly_fields = ('last_login',)
+    readonly_fields = ('last_login', 'password')
 
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
         ('Личная информация', {'fields': ('first_name', 'last_name')}),
-        ('Права доступа', {'fields': ('is_active', 'is_staff', 'is_superuser')}),
+        ('Права доступа', {'fields': ('is_active', 'is_staff')}),
         ('Важные даты', {'fields': ('last_login',)}),
-    )
+)
