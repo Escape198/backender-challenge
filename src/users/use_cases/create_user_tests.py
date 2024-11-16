@@ -57,28 +57,33 @@ def test_invalid_user_creation(
     assert response.error == expected_error
 
 
+@pytest.fixture
+def f_clickhouse_event_table_name() -> str:
+    """Fixture for the ClickHouse event log table name."""
+    return settings.CLICKHOUSE_EVENT_LOG_TABLE_NAME
+
+
 def test_event_log_entry_created_in_clickhouse(
     f_use_case: CreateUser,
     f_ch_client: Client,
+    f_clickhouse_event_table_name: str,
 ) -> None:
     """
     Test that a 'user_created' event is logged in the ClickHouse event log table.
-    Ensures the log entry is correctly recorded after a successful user creation.
     """
     email = f'test_{uuid.uuid4()}@email.com'
-    request = CreateUserRequest(
-        email=email, first_name='Test', last_name='Testovich',
-    )
+    first_name = "Test"
+    last_name = "Testovich"
+    request = CreateUserRequest(email=email, first_name=first_name, last_name=last_name)
 
     f_use_case.execute(request)
 
     # Fetching logs from ClickHouse for validation
     log_query = f"""
-        SELECT event_type
+        SELECT event_type 
         FROM {settings.CLICKHOUSE_EVENT_LOG_TABLE_NAME} 
         WHERE event_type = 'user_created'
     """
     log = f_ch_client.query(log_query)
 
-    # Verifying that the correct event was logged
-    assert log.result_rows == [("user_created",)]
+    assert log.result_rows == [('user_created',)]
