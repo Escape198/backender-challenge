@@ -4,6 +4,10 @@ from core.models import TimeStampedModel
 
 
 class User(TimeStampedModel, AbstractBaseUser):
+    """
+    Custom User model inheriting from AbstractBaseUser and TimeStampedModel.
+    Provides the core fields required for authentication and user management.
+    """
     email = models.EmailField(unique=True, db_index=True)
     is_staff = models.BooleanField(default=False, help_text="Indicates if the user has admin privileges")
     is_active = models.BooleanField(default=True, help_text="Indicates if the user account is active")
@@ -23,6 +27,9 @@ class User(TimeStampedModel, AbstractBaseUser):
         ]
 
     def __str__(self) -> str:
-        """Returns user's full name if available, otherwise their email"""
+        """
+        String representation of the user.
+        Returns the user's full name if available, otherwise their email.
+        """
         full_name = " ".join(filter(None, [self.first_name, self.last_name]))
         return full_name or self.email
