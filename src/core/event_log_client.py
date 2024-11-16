@@ -1,7 +1,10 @@
 import re
 from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Any
+import re
+from collections.abc import Generator
+from contextlib import contextmanager
+from typing import Any, List
 
 import clickhouse_connect
 import structlog
@@ -14,16 +17,25 @@ from core.base_model import Model
 logger = structlog.get_logger(__name__)
 
 EVENT_LOG_COLUMNS = [
-    'event_type',
-    'event_date_time',
-    'environment',
-    'event_context',
+    "event_type",
+    "event_date_time",
+    "environment",
+    "event_context",
 ]
 
 
 class EventLogClient:
-    def __init__(self, client: clickhouse_connect.driver.Client) -> None:
+    def __init__(
+        self,
+        client: clickhouse_connect.driver.Client,
+        schema: str,
+        table: str,
+        environment: str,
+    ) -> None:
         self._client = client
+        self._schema = schema
+        self._table = table
+        self._environment = environment
 
     @classmethod
     @contextmanager
