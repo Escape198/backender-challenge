@@ -1,10 +1,7 @@
 import re
 from collections.abc import Generator
 from contextlib import contextmanager
-import re
-from collections.abc import Generator
-from contextlib import contextmanager
-from typing import Any, List
+from typing import Any, List, Tuple, Sequence
 
 import clickhouse_connect
 import structlog
@@ -39,58 +36,72 @@ class EventLogClient:
 
     @classmethod
     @contextmanager
-    def init(cls) -> Generator['EventLogClient']:
+    def init(cls) -> Generator["EventLogClient", None, None]:
+        """Client initialization for ClickHouse."""
         client = clickhouse_connect.get_client(
-            host=settings.CLICKHOUSE_HOST,
-            port=settings.CLICKHOUSE_PORT,
-            user=settings.CLICKHOUSE_USER,
-            password=settings.CLICKHOUSE_PASSWORD,
-            query_retries=2,
-            connect_timeout=30,
-            send_receive_timeout=10,
-        )
+            host=settings.CLICKHOUSE_HOST, port=settings.CLICKHOUSE_PORT, user=settings.CLICKHOUSE_USER,
+            password=settings.CLICKHOUSE_PASSWORD, query_retries=2, connect_timeout=30, send_receive_timeout=10, )
         try:
-            yield cls(client)
+            yield cls(
+                client=client, schema=settings.CLICKHOUSE_SCHEMA, table=settings.CLICKHOUSE_EVENT_LOG_TABLE_NAME,
+                environment=settings.ENVIRONMENT, )
         except Exception as e:
-            logger.error('error while executing clickhouse query', error=str(e))
+            logger.error("Error while initializing ClickHouse client", error=str(e))
+            raise
         finally:
             client.close()
 
-    def insert(
-        self,
-        data: list[Model],
-    ) -> None:
+    def insert(self, data: List[Model]) -> None:
+        """Inserting data into ClickHouse."""
         try:
+            converted_data = self._convert_data(data)
             self._client.insert(
-                data=self._convert_data(data),
+                data=converted_data,
                 column_names=EVENT_LOG_COLUMNS,
-                database=settings.CLICKHOUSE_SCHEMA,
-                table=settings.CLICKHOUSE_EVENT_LOG_TABLE_NAME,
+                database=self._schema,
+                table=self._table,
+            )
+            logger.info(
+                "Successfully inserted data into ClickHouse",
+                row_count=len(converted_data),
             )
         except DatabaseError as e:
-            logger.error('unable to insert data to clickhouse', error=str(e))
+            logger.error(
+                "Unable to insert data into ClickHouse",
+                error=str(e),
+                table=self._table,
+                schema=self._schema,
+            )
+            raise
 
-    def query(self, query: str) -> Any:  # noqa: ANN401
-        logger.debug('executing clickhouse query', query=query)
-
+    def query(self, query: str) -> List[tuple[Any]]:
+        """Executing a request to ClickHouse."""
+        logger.debug("Executing ClickHouse query", query=query)
         try:
-            return self._client.query(query).result_rows
-        except DatabaseError as e:
-            logger.error('failed to execute clickhouse query', error=str(e))
-            return
+            result: Sequence[Sequence] = self._client.query(query).result_rows
 
-    def _convert_data(self, data: list[Model]) -> list[tuple[Any]]:
+            converted_result: List[Tuple[Any, ...]] = [tuple(row) for row in result]
+            logger.info("Query executed successfully", row_count=len(converted_result))
+            return converted_result
+
+        except DatabaseError as e:
+            logger.error(
+                "Failed to execute ClickHouse query", error=str(e), query=query, )
+            raise
+
+    def _convert_data(self, data: List[Model]) -> List[Tuple[str, Any, str, str]]:
+        """Convert data for insertion into ClickHouse."""
+        now = timezone.now()
         return [
             (
-                self._to_snake_case(event.__class__.__name__),
-                timezone.now(),
-                settings.ENVIRONMENT,
-                event.model_dump_json(),
-            )
-            for event in data
-        ]
+                self._to_snake_case(event.__class__.__name__),  # str
+                now,  # Any (datetime)
+                self._environment,  # str
+                event.model_dump_json(),  # str
+            ) for event in data]
 
-    def _to_snake_case(self, event_name: str) -> str:
-        result = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', event_name)
-        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', result).lower()
-
+    @staticmethod
+    def _to_snake_case(event_name: str) -> str:
+        """Convert the event name to snake_case."""
+        result = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", event_name)
+        return re.sub("([a-z0-9])([A-Z])", r"\1_\2", result).lower()
