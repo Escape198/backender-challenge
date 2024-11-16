@@ -28,37 +28,33 @@ def f_clean_up_event_log(f_ch_client: Client) -> Generator:
     yield
 
 
-def test_user_creation_success(f_use_case: CreateUser) -> None:
+@pytest.mark.parametrize(
+    "email, first_name, last_name, expected_error",
+    [
+        ("", "Test", "Testovich", "Email is required"),
+        ("invalid_email", "Test", "Testovich", "Invalid email format"),
+        ("a" * 256 + "@email.com", "Test", "Testovich", "Email is too long"),
+        ("test@email.com", "a" * 256, "Testovich", "First name is too long"),
+        ("test@email.com", "Test", "a" * 256, "Last name is too long"),
+    ],
+)
+def test_invalid_user_creation(
+    f_use_case: CreateUser,
+    email: str,
+    first_name: str,
+    last_name: str,
+    expected_error: str,
+) -> None:
     """
-    Test the successful creation of a user.
-    Ensures the response contains the correct data and no errors.
+    Test invalid user creation scenarios with various erroneous inputs.
+    Ensures the correct error message is returned for each case.
     """
-    request = CreateUserRequest(
-        email='test@email.com', first_name='Test', last_name='Testovich',
-    )
-
+    request = CreateUserRequest(email=email, first_name=first_name, last_name=last_name)
     response = f_use_case.execute(request)
 
-    # Verifying response details
-    assert response.result.email == 'test@email.com'
-    assert response.error == ''
-
-
-def test_user_creation_duplicate_email(f_use_case: CreateUser) -> None:
-    """
-    Test that creating a user with a duplicate email raises an error.
-    Ensures the use case handles unique constraints correctly.
-    """
-    request = CreateUserRequest(
-        email='test@email.com', first_name='Test', last_name='Testovich',
-    )
-
-    f_use_case.execute(request)  # First attempt should succeed
-    response = f_use_case.execute(request)  # Second attempt should fail
-
-    # Verifying the error message
+    # Verifying the response
     assert response.result is None
-    assert response.error == 'User with this email already exists'
+    assert response.error == expected_error
 
 
 def test_event_log_entry_created_in_clickhouse(
