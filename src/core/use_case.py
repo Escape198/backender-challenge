@@ -10,26 +10,13 @@ from core.base_model import Model
 logger = structlog.get_logger(__name__)
 
 
-class UseCase(ABC):
-    """Abstract class defining the interface for all Use Cases."""
-
-    def execute(self, request: UseCaseRequest) -> UseCaseResponse:
-        """Executes the Use Case."""
-        with structlog.contextvars.bound_contextvars(**self._get_context_vars(request)):
-            logger.info("Executing use case", use_case=self.__class__.__name__)
-            return self._execute(request)
-
-    def _get_context_vars(self, request: UseCaseRequest) -> Dict[str, Any]:
-        """Generates context variables for logging."""
-        return {"use_case": self.__class__.__name__}
-
-    @abstractmethod
-    def _execute(self, request: UseCaseRequest) -> UseCaseResponse:
-        pass
+class BaseRequest(Model):
+    """Base class for all Use Case requests."""
+    pass
 
 
-class UseCaseResponse(Model):
-    """A basic class for all answers."""
+class BaseResponse(Model):
+    """Base class for all Use Case responses."""
     result: Any = None
     error: str = ''
 
@@ -37,18 +24,36 @@ class UseCaseResponse(Model):
 class UseCase(ABC):
     """Abstract class defining the interface for all Use Cases."""
 
-    def execute(self, request: UseCaseRequest) -> UseCaseResponse:
+    def execute(self, request: BaseRequest) -> BaseResponse:
         """Executes the Use Case."""
         with structlog.contextvars.bound_contextvars(**self._get_context_vars(request)):
             logger.info("Executing use case", use_case=self.__class__.__name__)
             return self._execute(request)
 
-    def _get_context_vars(self, request: UseCaseRequest) -> Dict[str, Any]:
+    def _get_context_vars(self, request: BaseRequest) -> Dict[str, Any]:
         """Generates context variables for logging."""
         return {"use_case": self.__class__.__name__}
 
     @abstractmethod
-    def _execute(self, request: UseCaseRequest) -> UseCaseResponse:
+    def _execute(self, request: BaseRequest) -> BaseResponse:
+        pass
+
+
+class UseCase(ABC):
+    """Abstract class defining the interface for all Use Cases."""
+
+    def execute(self, request: BaseRequest) -> BaseResponse:
+        """Executes the Use Case."""
+        with structlog.contextvars.bound_contextvars(**self._get_context_vars(request)):
+            logger.info("Executing use case", use_case=self.__class__.__name__)
+            return self._execute(request)
+
+    def _get_context_vars(self, request: BaseRequest) -> Dict[str, Any]:
+        """Generates context variables for logging."""
+        return {"use_case": self.__class__.__name__}
+
+    @abstractmethod
+    def _execute(self, request: BaseRequest) -> BaseResponse:
         pass
 
 
@@ -56,7 +61,7 @@ class TransactionalUseCase(UseCase):
     """Abstract Use Case with transactional execution."""
 
     @transaction.atomic
-    def execute(self, request: UseCaseRequest) -> UseCaseResponse:
+    def execute(self, request: BaseRequest) -> BaseResponse:
         """
         Execute the Use Case within a database transaction.
 
