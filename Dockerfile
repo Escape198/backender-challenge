@@ -1,5 +1,4 @@
 ARG PYTHON_IMAGE_BASE=python:3.13-bullseye
-
 FROM $PYTHON_IMAGE_BASE
 
 ARG BUILD_DEPS="\
@@ -9,8 +8,8 @@ ARG BUILD_DEPS="\
     libpq-dev \
     libffi-dev \
     libssl-dev \
-    python3-dev \
 "
+ARG RUNTIME_DEPS=""
 
 WORKDIR /srv/app/
 
@@ -23,10 +22,14 @@ RUN apt-get -qq update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt ./
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
 WORKDIR /srv/app/src/
 
 RUN python manage.py collectstatic --noinput
+
+EXPOSE 8000
+
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
