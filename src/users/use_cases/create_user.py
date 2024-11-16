@@ -25,23 +25,6 @@ class CreateUserRequest(BaseRequest):
     last_name: str = ''
 
 
-class CreateUserResponse(BaseRequest):
-    result: User | None = None
-    error: str = ''
-
-
-class UserCreated(Model):
-    email: str
-    first_name: str
-    last_name: str
-
-
-class CreateUserRequest(BaseRequest):
-    email: str
-    first_name: str = ''
-    last_name: str = ''
-
-
 class CreateUserResponse(BaseResponse):
     result: User | None = None
     error: str = ''

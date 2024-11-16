@@ -1,4 +1,4 @@
-from typing import Any, Protocol, Dict
+from typing import Any, Dict
 from abc import ABC, abstractmethod
 
 import structlog
@@ -39,10 +39,16 @@ class UseCase(ABC):
         pass
 
 
+class UseCaseResponse(Model):
+    """A basic class for all answers."""
+    result: Any = None
+    error: str = ''
+
+
 class UseCase(ABC):
     """Abstract class defining the interface for all Use Cases."""
 
-    def execute(self, request: BaseRequest) -> BaseResponse:
+    def execute(self, request: BaseRequest) -> UseCaseResponse:
         """Executes the Use Case."""
         with structlog.contextvars.bound_contextvars(**self._get_context_vars(request)):
             logger.info("Executing use case", use_case=self.__class__.__name__)
@@ -53,7 +59,7 @@ class UseCase(ABC):
         return {"use_case": self.__class__.__name__}
 
     @abstractmethod
-    def _execute(self, request: BaseRequest) -> BaseResponse:
+    def _execute(self, request: BaseRequest) -> UseCaseResponse:
         pass
 
 
@@ -61,7 +67,7 @@ class TransactionalUseCase(UseCase):
     """Abstract Use Case with transactional execution."""
 
     @transaction.atomic
-    def execute(self, request: BaseRequest) -> BaseResponse:
+    def execute(self, request: BaseRequest) -> UseCaseResponse:
         """
         Execute the Use Case within a database transaction.
 
