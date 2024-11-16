@@ -74,11 +74,11 @@ def test_event_log_entry_created_in_clickhouse(
 
     # Fetching logs from ClickHouse for validation
     log_query = f"""
-        SELECT event_type 
+        SELECT event_type
         FROM {settings.CLICKHOUSE_EVENT_LOG_TABLE_NAME} 
         WHERE event_type = 'user_created'
     """
     log = f_ch_client.query(log_query)
 
     # Verifying that the correct event was logged
-    assert log.result_rows == [('user_created',), ]
+    assert log.result_rows == [("user_created",)]
