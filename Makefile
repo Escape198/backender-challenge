@@ -1,18 +1,34 @@
+APP_CONTAINER = app
+DJANGO_CMD = docker compose exec $(APP_CONTAINER) bash -c "python manage.py"
+DOCKER_RUN = docker compose run --rm $(APP_CONTAINER)
+
 run:
+	@echo "Starting the application..."
 	docker compose up
-install:
-	make migrations
-	make migrate
-	make superuser
+
+install: migrations migrate superuser
+	@echo "Installation completed."
+
 migrations:
-	docker compose exec app bash -c "python manage.py makemigrations"
+	@echo "Making migrations..."
+	$(DJANGO_CMD) makemigrations
+
 migrate:
-	docker compose exec app bash -c "python manage.py migrate"
+	@echo "Applying migrations..."
+	$(DJANGO_CMD) migrate
+
 superuser:
-	docker compose exec app bash -c "python manage.py createsuperuser"
+	@echo "Creating superuser..."
+	$(DJANGO_CMD) createsuperuser
+
 shell:
-	docker compose run --rm app shell
+	@echo "Starting Django shell..."
+	docker compose run --rm $(APP_CONTAINER) shell
+
 lint:
-	docker compose run --rm app ruff check --fix
+	@echo "Running linter (ruff)..."
+	docker compose run --rm $(APP_CONTAINER) ruff check --fix
+
 test:
-	docker compose run --rm app pytest -svv
+	@echo "Running tests..."
+	docker compose run --rm $(APP_CONTAINER) pytest -svv
