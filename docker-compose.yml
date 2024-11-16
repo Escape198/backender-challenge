@@ -14,11 +14,6 @@ services:
       - app_static_files:/srv/app/static:rw
       - app_media_files:/srv/app/media:rw
       - .:/srv/app
-    environment:
-      - DEBUG=true
-      - DATABASE_URL=postgres://test_pg_user:123456@db:5432/test_database
-      - REDIS_URL=redis://redis:6379/0
-      - CLICKHOUSE_URL=clickhouse://clickhouse:8123
 
   db:
     tty: true
@@ -27,9 +22,11 @@ services:
       - ./docker/postgres/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
       - dev-db-data:/var/lib/postgresql/data
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: test_pg_user
+      POSTGRES_PASSWORD: 123456
+      DATABASE_USER: test_user
+      DATABASE_PASSWORD: 123456
+      DATABASE_NAME: test_database
     ports:
       - 5432:5432
 
@@ -47,11 +44,8 @@ services:
     volumes:
       - ./docker/clickhouse/init.sql:/docker-entrypoint-initdb.d/init.sql
 
+
 volumes:
   dev-db-data: {}
-  app_media_files: {}
-  app_static_files: {}
-
-networks:
-  default:
-    driver: bridge
+  app_media_files: { }
+  app_static_files: { }
