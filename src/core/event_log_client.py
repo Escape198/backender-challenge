@@ -1,7 +1,7 @@
 import re
 from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Any
+from typing import Any, List, Tuple, Sequence
 
 import clickhouse_connect
 import structlog
@@ -14,71 +14,91 @@ from core.base_model import Model
 logger = structlog.get_logger(__name__)
 
 EVENT_LOG_COLUMNS = [
-    'event_type',
-    'event_date_time',
-    'environment',
-    'event_context',
+    "event_type",
+    "event_date_time",
+    "environment",
+    "event_context",
 ]
 
 
 class EventLogClient:
-    def __init__(self, client: clickhouse_connect.driver.Client) -> None:
+    def __init__(
+        self,
+        client: clickhouse_connect.driver.Client,
+        schema: str,
+        table: str,
+        environment: str,
+    ) -> None:
         self._client = client
+        self._schema = schema
+        self._table = table
+        self._environment = environment
 
     @classmethod
     @contextmanager
-    def init(cls) -> Generator['EventLogClient']:
+    def init(cls) -> Generator["EventLogClient", None, None]:
+        """
+        Инициализация клиента для ClickHouse.
+        """
         client = clickhouse_connect.get_client(
-            host=settings.CLICKHOUSE_HOST,
-            port=settings.CLICKHOUSE_PORT,
-            user=settings.CLICKHOUSE_USER,
-            password=settings.CLICKHOUSE_PASSWORD,
-            query_retries=2,
-            connect_timeout=30,
-            send_receive_timeout=10,
-        )
+            host=settings.CLICKHOUSE_HOST, port=settings.CLICKHOUSE_PORT, user=settings.CLICKHOUSE_USER, password=settings.CLICKHOUSE_PASSWORD, query_retries=2, connect_timeout=30, send_receive_timeout=10, )
         try:
-            yield cls(client)
+            yield cls(
+                client=client, schema=settings.CLICKHOUSE_SCHEMA, table=settings.CLICKHOUSE_EVENT_LOG_TABLE_NAME, environment=settings.ENVIRONMENT, )
         except Exception as e:
-            logger.error('error while executing clickhouse query', error=str(e))
+            logger.error("Error while initializing ClickHouse client", error=str(e))
+            raise
         finally:
             client.close()
 
-    def insert(
-        self,
-        data: list[Model],
-    ) -> None:
+    def insert(self, data: List[Model]) -> None:
+        """
+        Вставка данных в ClickHouse.
+        """
         try:
+            converted_data: List[Tuple[str, Any, str, str]] = self._convert_data(data)
             self._client.insert(
-                data=self._convert_data(data),
-                column_names=EVENT_LOG_COLUMNS,
-                database=settings.CLICKHOUSE_SCHEMA,
-                table=settings.CLICKHOUSE_EVENT_LOG_TABLE_NAME,
-            )
+                data=converted_data, column_names=EVENT_LOG_COLUMNS, database=self._schema, table=self._table, )
+            logger.info(
+                "Successfully inserted data into ClickHouse", row_count=len(converted_data), )
         except DatabaseError as e:
-            logger.error('unable to insert data to clickhouse', error=str(e))
+            logger.error(
+                "Unable to insert data into ClickHouse", error=str(e), table=self._table, schema=self._schema, )
+            raise
 
-    def query(self, query: str) -> Any:  # noqa: ANN401
-        logger.debug('executing clickhouse query', query=query)
-
+    def query(self, query: str) -> List[Tuple[Any, ...]]:
+        """
+        Выполнение запроса к ClickHouse.
+        """
+        logger.debug("Executing ClickHouse query", query=query)
         try:
-            return self._client.query(query).result_rows
+            result: Sequence[Sequence] = self._client.query(query).result_rows
+            # Преобразуем результат в нужный тип
+            converted_result: List[Tuple[Any, ...]] = [tuple(row) for row in result]
+            logger.info("Query executed successfully", row_count=len(converted_result))
+            return converted_result
         except DatabaseError as e:
-            logger.error('failed to execute clickhouse query', error=str(e))
-            return
+            logger.error(
+                "Failed to execute ClickHouse query", error=str(e), query=query, )
+            raise
 
-    def _convert_data(self, data: list[Model]) -> list[tuple[Any]]:
+    def _convert_data(self, data: List[Model]) -> List[Tuple[str, Any, str, str]]:
+        """
+        Преобразование данных для вставки в ClickHouse.
+        """
+        now = timezone.now()
         return [
             (
-                self._to_snake_case(event.__class__.__name__),
-                timezone.now(),
-                settings.ENVIRONMENT,
-                event.model_dump_json(),
-            )
-            for event in data
-        ]
+                self._to_snake_case(event.__class__.__name__),  # str
+                now,  # Any (datetime)
+                self._environment,  # str
+                event.model_dump_json(),  # str
+            ) for event in data]
 
-    def _to_snake_case(self, event_name: str) -> str:
-        result = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', event_name)
-        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', result).lower()
-
+    @staticmethod
+    def _to_snake_case(event_name: str) -> str:
+        """
+        Преобразование имени события в snake_case.
+        """
+        result = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", event_name)
+        return re.sub("([a-z0-9])([A-Z])", r"\1_\2", result).lower()
