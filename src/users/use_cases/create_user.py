@@ -39,26 +39,27 @@ class CreateUser(UseCase):
             'last_name': request.last_name,
         }
 
+    def _error_response(self, error_message: str) -> CreateUserResponse:
+        """Logs an error and returns a response."""
+        logger.error(error_message)
+        return CreateUserResponse(error=error_message)
+
     def _execute(self, request: CreateUserRequest) -> CreateUserResponse:
         logger.info("creating a new user", email=request.email)
 
         if not request.email.strip():
-            logger.error("invalid request: email is required")
-            return CreateUserResponse(error="Email is required")
+            return self._error_response("Email is required")
 
         try:
             validate_email(request.email)
         except ValidationError:
-            logger.error("invalid request: invalid email format")
-            return CreateUserResponse(error="Invalid email format")
+            return self._error_response("Invalid email format")
 
         if len(request.email) > 255:
-            logger.error("invalid request: email is too long")
-            return CreateUserResponse(error="Email is too long")
+            return self._error_response("Email is too long")
 
         if len(request.first_name) > 255 or len(request.last_name) > 255:
-            logger.error("invalid request: name fields are too long")
-            return CreateUserResponse(error="Name fields are too long")
+            return self._error_response("Name fields are too long")
 
         try:
             event_data = []
@@ -83,8 +84,8 @@ class CreateUser(UseCase):
                         return CreateUserResponse(result=user)
 
                     logger.warning("user already exists", email=request.email)
-                    return CreateUserResponse(error="User with this email already exists")
+                    return self._error_response("User with this email already exists")
 
         except Exception as e:
             logger.error("unexpected error during user creation", error=str(e))
-            return CreateUserResponse(error="An unexpected error occurred")
+            return self._error_response("An unexpected error occurred")
