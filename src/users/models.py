@@ -18,7 +18,8 @@ class User(TimeStampedModel, AbstractBaseUser):
         verbose_name_plural = 'Users'
 
         indexes = [
-            models.Index(fields=['is_active', 'is_staff'], name='user_status_idx'),
+            models.Index(fields=['is_active'], name='user_is_active_idx'),
+            models.Index(fields=['is_staff'], name='user_is_staff_idx'),
         ]
 
     def __str__(self) -> str:
