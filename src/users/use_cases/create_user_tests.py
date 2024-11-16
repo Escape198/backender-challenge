@@ -21,11 +21,11 @@ def f_use_case() -> CreateUser:
 @pytest.fixture(autouse=True)
 def f_clean_up_event_log(f_ch_client: Client) -> Generator:
     """
-    Automatically cleans up the event log table in ClickHouse before each test.
-    Ensures the test environment is isolated and free of residue data.
+    Automatically cleans up the event log table in ClickHouse before and after each test.
     """
     f_ch_client.query(f'TRUNCATE TABLE {settings.CLICKHOUSE_EVENT_LOG_TABLE_NAME}')
     yield
+    f_ch_client.query(f'TRUNCATE TABLE {settings.CLICKHOUSE_EVENT_LOG_TABLE_NAME}')
 
 
 @pytest.mark.parametrize(
@@ -87,3 +87,14 @@ def test_event_log_entry_created_in_clickhouse(
     log = f_ch_client.query(log_query)
 
     assert log.result_rows == [('user_created',)]
+
+
+@pytest.mark.clean_event_log
+def test_user_creation_success(f_use_case: CreateUser) -> None:
+    """est the successful creation of a user."""
+    request = CreateUserRequest(email='test@email.com', first_name='Test', last_name='Testovich')
+    response = f_use_case.execute(request)
+
+    # Verifying response details
+    assert response.result.email == 'test@email.com'
+    assert response.error == ''
