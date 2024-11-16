@@ -22,7 +22,5 @@ class User(TimeStampedModel, AbstractBaseUser):
         ]
 
     def __str__(self) -> str:
-        if all([self.first_name, self.last_name]):
-            return f'{self.first_name} {self.last_name}'
-
-        return self.email
+        """Returns user's full name or email"""
+        return f"{self.first_name} {self.last_name}".strip() or self.email
