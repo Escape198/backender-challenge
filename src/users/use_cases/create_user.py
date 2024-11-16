@@ -3,6 +3,7 @@ from typing import Any
 import structlog
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
+from django.db import transaction
 
 from core.base_model import Model
 from core.transactional_outbox import transactional_outbox
@@ -104,16 +105,3 @@ class CreateUser(UseCase):
         except Exception as e:
             logger.error("unexpected error during user creation", error=str(e))
             return CreateUserResponse(error="An unexpected error occurred")
-
-    def _log(self, user: User) -> None:
-        with EventLogClient.init() as client:
-            client.insert(
-                data=[
-                    UserCreated(
-                        email=user.email,
-                        first_name=user.first_name,
-                        last_name=user.last_name,
-                    ),
-                ],
-            )
-
