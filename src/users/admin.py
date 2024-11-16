@@ -13,7 +13,7 @@ class UserAdmin(admin.ModelAdmin):
 
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
-        ('Личная информация', {'fields': ('first_name', 'last_name')}),
-        ('Права доступа', {'fields': ('is_active', 'is_staff')}),
-        ('Важные даты', {'fields': ('last_login',)}),
-)
+        ('Personal Information', {'fields': ('first_name', 'last_name')}),
+        ('Permissions', {'fields': ('is_active', 'is_staff')}),
+        ('Important Dates', {'fields': ('last_login',)}),
+    )
