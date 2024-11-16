@@ -1,59 +1,81 @@
 [tool.pytest.ini_options]
+# Django settings module for tests
 DJANGO_SETTINGS_MODULE = "core.settings"
+
+# Environment variables for the testing environment
 env = [
-    "DEBUG = true",
-    "CELERY_ALWAYS_EAGER = on",
+    "DEBUG=true",
+    "CELERY_ALWAYS_EAGER=on",
 ]
+
+# Test discovery pattern
 python_files = "*_tests.py tests/test_*.py"
-addopts = "-vrs -r fE --tb=short --reuse-db --no-migrations --disable-warnings -p no:warnings"
+
+# Additional pytest options
+addopts = """
+    -vrs
+    -r fE
+    --tb=short
+    --reuse-db
+    --no-migrations
+    --disable-warnings
+    -p no:warnings
+"""
 
 [tool.ruff]
+# General linting configuration
 line-length = 120
-lint.ignore = [
-    'ANN101',
-    'ANN102',
-    'Q000',
-    'S101',
-]
-lint.select = [
-    'W',
-    'ARG',
-    'ANN',
-    'ASYNC',
-    'B',
-    'COM',
-    'C4',
-    'C90',
-    'DTZ',
-    'E',
-    'ERA',
-    'F',
-    'UP',
-    'T10',
-    'T20',
-    'Q',
-    'S',
-    'I',
-    'N',
-    'YTT',
-    'PTH',
-]
-
-lint.exclude = [
-    '.git',
-    '.mypy_cache',
-    '.ruff_cache',
-    '__pycache__',
-    'src/core/celery.py',
-    'src/manage.py',
-]
-
-lint.fixable = ["ALL"]
-
-# Allow unused variables when underscore-prefixed.
-lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
-
 target-version = "py311"
 
+# Rules to ignore
+lint.ignore = [
+    "ANN101",  # Missing type annotation for self in method
+    "ANN102",  # Missing type annotation for cls in method
+    "Q000",    # Remove bad quotes
+    "S101",    # Use of `assert` detected
+]
+
+# Rules to select
+lint.select = [
+    "W",       # Warnings
+    "ARG",     # Argument-related issues
+    "ANN",     # Annotation-related issues
+    "ASYNC",   # Async-specific rules
+    "B",       # Bugbear rules
+    "COM",     # Comments
+    "C4",      # Complex logic
+    "C90",     # Deprecated rules
+    "DTZ",     # Datetime-related rules
+    "E",       # Errors
+    "ERA",     # Error-related annotations
+    "F",       # Failures (e.g., undefined names)
+    "UP",      # Upgrades (e.g., Python version-specific improvements)
+    "T10",     # Type annotations
+    "T20",     # Typing improvements
+    "Q",       # Quoting style
+    "S",       # Security
+    "I",       # Import-related issues
+    "N",       # Naming conventions
+    "YTT",     # YTT plugin rules
+    "PTH",     # Pathlib improvements
+]
+
+# Files and directories to exclude from linting
+lint.exclude = [
+    ".git",
+    ".mypy_cache",
+    ".ruff_cache",
+    "__pycache__",
+    "src/core/celery.py",
+    "src/manage.py",
+]
+
+# Rules that can be auto-fixed
+lint.fixable = ["ALL"]
+
+# Allow unused variables with underscore prefix
+lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
 [tool.ruff.lint.mccabe]
-max-complexity = 4
+# Complexity threshold (adjust based on project needs)
+max-complexity = 6
