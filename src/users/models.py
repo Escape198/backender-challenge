@@ -6,7 +6,7 @@ from core.models import TimeStampedModel
 class User(TimeStampedModel, AbstractBaseUser):
     email = models.EmailField(unique=True, db_index=True)
     is_staff = models.BooleanField(default=False, help_text="Admin access")
-    is_active = models.BooleanField(default=True, help_text="Активность пользователя")
+    is_active = models.BooleanField(default=True, help_text="User activity")
     first_name = models.CharField(max_length=255, blank=True, null=True, help_text="User activity")
     last_name = models.CharField(max_length=255, blank=True, null=True, help_text="User's last name")
 
@@ -22,5 +22,6 @@ class User(TimeStampedModel, AbstractBaseUser):
         ]
 
     def __str__(self) -> str:
-        """Returns user's full name or email"""
-        return f"{self.first_name} {self.last_name}".strip() or self.email
+        """Returns user's full name if available, otherwise their email"""
+        full_name = " ".join(filter(None, [self.first_name, self.last_name]))
+        return full_name or self.email
