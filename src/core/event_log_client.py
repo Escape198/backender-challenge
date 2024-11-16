@@ -68,7 +68,8 @@ class EventLogClient:
                     "Batch inserted into ClickHouse", batch_size=len(batch), total_records=len(data),
                     batch_number=(i // batch_size) + 1, )
         except DatabaseError as e:
-            logger.error("Failed to insert data into ClickHouse", error=str(e))
+            logger.error(
+                "Unable to insert batch data into ClickHouse", error=str(e), table=self._table, schema=self._schema, )
             raise
 
     def query(self, query: str) -> List[tuple[Any]]:
