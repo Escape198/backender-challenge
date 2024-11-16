@@ -38,27 +38,17 @@ class UseCase(ABC):
     """Abstract class defining the interface for all Use Cases."""
 
     def execute(self, request: UseCaseRequest) -> UseCaseResponse:
-        """
-        The primary method of execution for the Use Case.
-
-        Subclasses may override this method for custom behavior.
-        """
+        """Executes the Use Case."""
         with structlog.contextvars.bound_contextvars(**self._get_context_vars(request)):
             logger.info("Executing use case", use_case=self.__class__.__name__)
             return self._execute(request)
 
     def _get_context_vars(self, request: UseCaseRequest) -> Dict[str, Any]:
-        """
-        Generates context variables for logging.
-
-        WARNING:
-        Do not query the database in this method.
-        """
+        """Generates context variables for logging."""
         return {"use_case": self.__class__.__name__}
 
     @abstractmethod
     def _execute(self, request: UseCaseRequest) -> UseCaseResponse:
-        """An abstract method that must be implemented in subclasses."""
         pass
 
 
