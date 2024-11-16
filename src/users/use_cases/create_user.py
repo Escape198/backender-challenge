@@ -1,3 +1,4 @@
+from uuid import uuid4
 from typing import Any
 
 import structlog
@@ -39,7 +40,8 @@ class CreateUser(UseCase):
             'last_name': request.last_name,
         }
 
-    def _error_response(self, error_message: str) -> CreateUserResponse:
+    @staticmethod
+    def _error_response(error_message: str) -> CreateUserResponse:
         """Logs an error and returns a response."""
         logger.error(error_message)
         return CreateUserResponse(error=error_message)
@@ -53,7 +55,8 @@ class CreateUser(UseCase):
         return True
 
     def _execute(self, request: CreateUserRequest) -> CreateUserResponse:
-        logger.info("creating a new user", email=request.email)
+        transaction_id = str(uuid4())
+        logger.info("starting user creation process", transaction_id=transaction_id, email=request.email)
 
         if not request.email.strip():
             return self._error_response("Email is required")
@@ -81,7 +84,12 @@ class CreateUser(UseCase):
                     )
 
                     if created:
-                        logger.info("user has been created", user_id=user.id)
+                        logger.info(
+                            "user has been created",
+                            transaction_id=transaction_id,
+                            user_id=user.id,
+                            email=user.email,
+                        )
 
                         event_data.append(
                             UserCreated(
@@ -92,9 +100,17 @@ class CreateUser(UseCase):
                         )
                         return CreateUserResponse(result=user)
 
-                    logger.warning("user already exists", email=request.email)
+                    logger.warning(
+                        "user already exists",
+                        transaction_id=transaction_id,
+                        email=request.email,
+                    )
                     return self._error_response("User with this email already exists")
 
         except Exception as e:
-            logger.error("unexpected error during user creation", error=str(e))
+            logger.error(
+                "unexpected error during user creation",
+                transaction_id=transaction_id,
+                error=str(e),
+            )
             return self._error_response("An unexpected error occurred")
