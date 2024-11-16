@@ -1,42 +1,113 @@
 # Die Hard
 
-This is a project with a test task for backend developers.
+Этот проект является тестовым заданием для backend-разработчиков. Он реализует базовые возможности веб-приложения с использованием Python и Django, а также поддерживает расширяемую архитектуру для работы с событиями и логированием.
 
-You can find detailed requirements by clicking the links:
-- [English version](docs/task_en.md)
-- [Russian version](docs/task_ru.md)
+## Технологии
 
-Tech stack:
+Проект построен с использованием следующих технологий:
+
 - Python 3.13
 - Django 5
-- pytest
-- Docker & docker-compose
+- Celery
+- Redis
 - PostgreSQL
 - ClickHouse
+- pytest
+- structlog
+- Docker и Docker Compose
 
-## Installation
+## Установка и запуск
 
-Put a `.env` file into the `src/core` directory. You can start with a template file:
+### Подготовка окружения
 
-```
+1. Убедитесь, что у вас установлены Docker и Docker Compose.
+2. Создайте файл .env в директории src/core. Вы можете начать с примера:
+
+```bash
 cp src/core/.env.ci src/core/.env
 ```
 
-Run the containers with
-```
+### Настройка переменных окружения
+
+В файле .env укажите следующие переменные:
+
+- DEBUG - True для режима разработки или False для продакшн.
+- SECRET_KEY - секретный ключ для Django.
+- DATABASE_URL - строка подключения к PostgreSQL.
+- CLICKHOUSE_HOST, CLICKHOUSE_PORT, CLICKHOUSE_USER, CLICKHOUSE_PASSWORD - параметры для подключения к ClickHouse.
+- REDIS_URL - URL для подключения к Redis.
+- SENTRY_CONFIG_DSN - DSN для интеграции с Sentry.
+- SENTRY_CONFIG_ENVIRONMENT - имя окружения для Sentry.
+
+### Запуск контейнеров
+
+Чтобы запустить проект, выполните:
+
+```bash
 make run
 ```
 
-and then run the installation script with:
+После этого установите необходимые зависимости и выполните миграции:
 
-```
+```bash
 make install
 ```
 
-## Tests
+## Тестирование
 
-`make test`
+Для запуска тестов используйте команду:
 
-## Linter
+```bash
+make test
+```
 
-`make lint`
+Тесты включают интеграцию с ClickHouse, проверку транзакционной модели outbox и модульные тесты.
+
+## Проверка кода
+
+Проект использует ruff для анализа качества кода. Запуск линтера:
+
+```bash
+make lint
+```
+
+Вы можете автоматически исправить большинство ошибок в коде.
+
+## Возможности проекта
+
+### Управление пользователями
+
+- Регистрация пользователя с использованием модели User.
+- Логирование действий пользователя через EventLogClient.
+
+### Транзакционная модель Outbox
+
+Реализован механизм transactional_outbox, который гарантирует атомарность обработки событий и их запись в ClickHouse.
+
+### Интеграция с Sentry
+
+Ошибки автоматически отправляются в Sentry для мониторинга, если указана переменная SENTRY_CONFIG_DSN.
+
+### Асинхронная обработка задач
+
+Используется Celery для асинхронной обработки задач. Задачи логирования событий выполняются надежно, благодаря транзакционной модели.
+
+## Возможности запуска
+
+- Режим разработки с DEBUG=true.
+- Продакшн-режим с повышенной безопасностью (настройка CSRF_COOKIE_SECURE и SECURE_HSTS_SECONDS).
+- Использование встроенного сервера Django (runserver) или Gunicorn для продакшн-среды.
+- Возможность переопределения переменных окружения без изменения исходного кода.
+
+## Структура проекта
+
+- src/core - базовые настройки Django, включая middleware и конфигурацию баз данных.
+- src/users - приложение для управления пользователями.
+- src/tests - тесты, покрывающие логику приложения и интеграцию с внешними сервисами.
+- docker - директория с конфигурацией Docker Compose, включая настройки для PostgreSQL и ClickHouse.
+
+## Обратная связь
+
+Если у вас есть предложения или замечания по проекту, создайте issue или pull request в репозитории. Мы будем рады любому фидбеку!
+
+## Автор
