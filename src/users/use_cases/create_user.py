@@ -13,7 +13,6 @@ from users.models import User
 
 logger = structlog.get_logger(__name__)
 
-
 class UserCreated(Model):
     email: str
     first_name: str
@@ -48,16 +47,15 @@ class CreateUser(UseCase):
 
     @staticmethod
     def _validate_field_length(field_value: str, field_name: str, max_length: int) -> bool:
+        """Validates that a field doesn't exceed a maximum length."""
         if len(field_value) > max_length:
             error_message = f"{field_name} is too long"
             logger.error(error_message)
             return False
         return True
 
-    def _execute(self, request: CreateUserRequest) -> CreateUserResponse:
-        transaction_id = str(uuid4())
-        logger.info("starting user creation process", transaction_id=transaction_id, email=request.email)
-
+    def _validate_request(self, request: CreateUserRequest) -> CreateUserResponse:
+        """Validates the incoming request."""
         if not request.email.strip():
             return self._error_response("Email is required")
 
@@ -73,38 +71,68 @@ class CreateUser(UseCase):
         if not self._validate_field_length(request.last_name, "Last name", 255):
             return self._error_response("Last name is too long")
 
+        return None
+
+    def _create_user(self, request: CreateUserRequest, transaction_id: str) -> CreateUserResponse:
+        """Creates a user if not already existing."""
+        event_data = []
+
         try:
-            event_data = []
+            with transactional_outbox(event_data=event_data):
+                user, created = User.objects.get_or_create(
+                    email=request.email,
+                    defaults={"first_name": request.first_name, "last_name": request.last_name},
+                )
 
+                if created:
+                    logger.info(
+                        "User created successfully",
+                        transaction_id=transaction_id,
+                        user_id=user.id,
+                        email=user.email
+                    )
+
+                    event_data.append(
+                        UserCreated(
+                            email=user.email,
+                            first_name=user.first_name,
+                            last_name=user.last_name
+                        )
+                    )
+                    return CreateUserResponse(result=user)
+
+                logger.warning(
+                    "User already exists",
+                    transaction_id=transaction_id,
+                    email=request.email
+                )
+                return self._error_response("User with this email already exists")
+
+        except Exception as outbox_error:
+            logger.error(
+                "Transactional outbox failed",
+                transaction_id=transaction_id,
+                error=str(outbox_error)
+            )
+            raise
+
+    def _execute(self, request: CreateUserRequest) -> CreateUserResponse:
+        transaction_id = str(uuid4())
+        logger.info("Starting user creation process", transaction_id=transaction_id, email=request.email)
+
+        # Validate request data
+        validation_error = self._validate_request(request)
+        if validation_error:
+            return validation_error
+
+        # Proceed to user creation
+        try:
             with transaction.atomic():
-                try:
-                    with transactional_outbox(event_data=event_data):
-                        user, created = User.objects.get_or_create(
-                            email=request.email,
-                            defaults={"first_name": request.first_name, "last_name": request.last_name}, )
-
-                        if created:
-                            logger.info(
-                                "user has been created", transaction_id=transaction_id, user_id=user.id,
-                                email=user.email, )
-
-                            event_data.append(
-                                UserCreated(
-                                    email=user.email, first_name=user.first_name, last_name=user.last_name, )
-                            )
-                            return CreateUserResponse(result=user)
-
-                        logger.warning(
-                            "user already exists", transaction_id=transaction_id, email=request.email, )
-                        return self._error_response("User with this email already exists")
-                except Exception as outbox_error:
-                    logger.error(
-                        "transactional outbox failed", transaction_id=transaction_id, error=str(outbox_error), )
-                    raise
+                return self._create_user(request, transaction_id)
 
         except Exception as e:
             logger.error(
-                "unexpected error during user creation",
+                "Unexpected error during user creation",
                 transaction_id=transaction_id,
                 error=str(e),
             )
