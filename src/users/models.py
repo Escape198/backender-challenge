@@ -13,9 +13,13 @@ class User(TimeStampedModel, AbstractBaseUser):
     EMAIL_FIELD = 'email'
     USERNAME_FIELD = 'email'
 
-    class Meta(AbstractBaseUser.Meta):
+    class Meta:
         verbose_name = 'User'
         verbose_name_plural = 'Users'
+
+        indexes = [
+            models.Index(fields=['is_active', 'is_staff'], name='user_status_idx'),
+        ]
 
     def __str__(self) -> str:
         if all([self.first_name, self.last_name]):
