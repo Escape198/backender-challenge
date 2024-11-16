@@ -89,12 +89,25 @@ def test_event_log_entry_created_in_clickhouse(
     assert log.result_rows == [('user_created',)]
 
 
-@pytest.mark.clean_event_log
-def test_user_creation_success(f_use_case: CreateUser) -> None:
-    """est the successful creation of a user."""
-    request = CreateUserRequest(email='test@email.com', first_name='Test', last_name='Testovich')
+def test_no_event_logged_on_failure(
+    f_use_case: CreateUser,
+    f_ch_client: Client,
+    f_clickhouse_event_table_name: str,
+) -> None:
+    """
+    Test that no event is logged in ClickHouse if user creation fails.
+    """
+    invalid_email = "invalid_email"
+    request = CreateUserRequest(email=invalid_email, first_name="Test", last_name="Testovich")
+
     response = f_use_case.execute(request)
 
-    # Verifying response details
-    assert response.result.email == 'test@email.com'
-    assert response.error == ''
+    # Ensuring the use case fails
+    assert response.result is None
+    assert response.error == "Invalid email format"
+
+    # Ensuring no events are logged
+    log_query = f"SELECT event_type FROM {settings.CLICKHOUSE_EVENT_LOG_TABLE_NAME} WHERE event_context LIKE '%invalid_email%'"
+    log = f_ch_client.query(log_query)
+
+    assert not log.result_rows  # Log should be empty
