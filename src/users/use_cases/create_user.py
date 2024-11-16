@@ -44,6 +44,14 @@ class CreateUser(UseCase):
         logger.error(error_message)
         return CreateUserResponse(error=error_message)
 
+    @staticmethod
+    def _validate_field_length(field_value: str, field_name: str, max_length: int) -> bool:
+        if len(field_value) > max_length:
+            error_message = f"{field_name} is too long"
+            logger.error(error_message)
+            return False
+        return True
+
     def _execute(self, request: CreateUserRequest) -> CreateUserResponse:
         logger.info("creating a new user", email=request.email)
 
@@ -55,11 +63,12 @@ class CreateUser(UseCase):
         except ValidationError:
             return self._error_response("Invalid email format")
 
-        if len(request.email) > 255:
+        if not self._validate_field_length(request.email, "Email", 255):
             return self._error_response("Email is too long")
-
-        if len(request.first_name) > 255 or len(request.last_name) > 255:
-            return self._error_response("Name fields are too long")
+        if not self._validate_field_length(request.first_name, "First name", 255):
+            return self._error_response("First name is too long")
+        if not self._validate_field_length(request.last_name, "Last name", 255):
+            return self._error_response("Last name is too long")
 
         try:
             event_data = []
