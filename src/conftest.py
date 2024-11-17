@@ -14,7 +14,6 @@ def f_clickhouse_event_table_name(settings):
     client = Client(host=settings.CLICKHOUSE_HOST, database=settings.CLICKHOUSE_DATABASE)
     table_name = settings.CLICKHOUSE_EVENT_LOG_TABLE_NAME
 
-    # Проверка подключения и создание таблицы, если нужно
     client.execute(f'''
     CREATE TABLE IF NOT EXISTS {table_name} (
         id UUID,
