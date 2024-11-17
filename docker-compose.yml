@@ -8,7 +8,7 @@ services:
       - db
       - clickhouse
       - redis
-    command: [ "../docker/wait-for-it.sh", "db:5432", "--", "python", "manage.py", "runserver", "0.0.0.0:8000" ]
+    command: ["../docker/wait-for-it.sh", "clickhouse:9000", "--", "python", "manage.py", "runserver", "0.0.0.0:8000"]
     ports:
       - "8000:8000"
     environment:
@@ -48,6 +48,7 @@ services:
     container_name: clickhouse
     image: clickhouse/clickhouse-server:23.8.2.7-alpine
     ports:
+      - "9000:9000"
       - "8123:8123"
     environment:
       CLICKHOUSE_USER: default

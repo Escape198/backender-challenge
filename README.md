@@ -1,10 +1,10 @@
 # Die Hard
 
-Этот проект является тестовым заданием для backend-разработчиков. Он реализует базовые возможности веб-приложения с использованием Python и Django, а также поддерживает расширяемую архитектуру для работы с событиями и логированием.
+This project is a test assignment for backend developers. It implements the basic functionality of a web application using Python and Django, while also supporting an extensible architecture for event handling and logging.
 
-## Технологии
+## Technologies
 
-Проект построен с использованием следующих технологий:
+The project is built using the following technologies:
 
 - Python 3.13
 - Django 5
@@ -14,100 +14,92 @@
 - ClickHouse
 - pytest
 - structlog
-- Docker и Docker Compose
+- Docker and Docker Compose
 
-## Установка и запуск
+## Setup and Running
 
-### Подготовка окружения
+### Environment Preparation
 
-1. Убедитесь, что у вас установлены Docker и Docker Compose.
-2. Создайте файл .env в директории src/core. Вы можете начать с примера:
+1. Ensure Docker and Docker Compose are installed.
+2. Create a `.env` file in the `src/core` directory. You can start with an example:
 
 ```bash
 cp src/core/.env.ci src/core/.env
 ```
+### Environment Variable Configuration
 
-### Настройка переменных окружения
+In the `.env` file, set the following variables:
 
-В файле .env укажите следующие переменные:
+- `DEBUG` - Set to `True` for development mode, or `False` for production.
+- `SECRET_KEY` - Django secret key.
+- `DATABASE_URL` - PostgreSQL connection string.
+- `CLICKHOUSE_HOST`, `CLICKHOUSE_PORT`, `CLICKHOUSE_USER`, `CLICKHOUSE_PASSWORD` - Parameters for connecting to ClickHouse.
+- `REDIS_URL` - URL for connecting to Redis.
+- `SENTRY_CONFIG_DSN` - DSN for integrating with Sentry.
+- `SENTRY_CONFIG_ENVIRONMENT` - Sentry environment name.
 
-- DEBUG - True для режима разработки или False для продакшн.
-- SECRET_KEY - секретный ключ для Django.
-- DATABASE_URL - строка подключения к PostgreSQL.
-- CLICKHOUSE_HOST, CLICKHOUSE_PORT, CLICKHOUSE_USER, CLICKHOUSE_PASSWORD - параметры для подключения к ClickHouse.
-- REDIS_URL - URL для подключения к Redis.
-- SENTRY_CONFIG_DSN - DSN для интеграции с Sentry.
-- SENTRY_CONFIG_ENVIRONMENT - имя окружения для Sentry.
+### Running the Containers
 
-### Запуск контейнеров
-
-Чтобы запустить проект, выполните:
+To start the project, run the following:
 
 ```bash
 make run
 ```
-
-После этого установите необходимые зависимости и выполните миграции:
-
+After that, install the required dependencies and run migrations:
 ```bash
 make install
 ```
+## Testing
 
-## Тестирование
-
-Для запуска тестов используйте команду:
-
+To run the tests, use the following command:
 ```bash
 make test
 ```
+The tests include integration with ClickHouse, validation of the transactional outbox model, and unit tests.
 
-Тесты включают интеграцию с ClickHouse, проверку транзакционной модели outbox и модульные тесты.
+## Code Quality Check
 
-## Проверка кода
-
-Проект использует ruff для анализа качества кода. Запуск линтера:
-
+The project uses `ruff` for code quality analysis. To run the linter:
 ```bash
 make lint
 ```
+You can automatically fix most code issues.
 
-Вы можете автоматически исправить большинство ошибок в коде.
+## Project Features
 
-## Возможности проекта
+### User Management
 
-### Управление пользователями
+- User registration using the `User` model.
+- Logging user actions via the `EventLogClient`.
 
-- Регистрация пользователя с использованием модели User.
-- Логирование действий пользователя через EventLogClient.
+### Transactional Outbox Model
 
-### Транзакционная модель Outbox
+The `transactional_outbox` mechanism guarantees atomicity in event processing and their recording in ClickHouse.
 
-Реализован механизм transactional_outbox, который гарантирует атомарность обработки событий и их запись в ClickHouse.
+### Sentry Integration
 
-### Интеграция с Sentry
+Errors are automatically sent to Sentry for monitoring if the `SENTRY_CONFIG_DSN` variable is set.
 
-Ошибки автоматически отправляются в Sentry для мониторинга, если указана переменная SENTRY_CONFIG_DSN.
+### Asynchronous Task Processing
 
-### Асинхронная обработка задач
+Celery is used for asynchronous task handling. Event logging tasks are reliably executed, thanks to the transactional model.
 
-Используется Celery для асинхронной обработки задач. Задачи логирования событий выполняются надежно, благодаря транзакционной модели.
+## Running Options
 
-## Возможности запуска
+- Development mode with `DEBUG=true`.
+- Production mode with enhanced security (CSRF_COOKIE_SECURE and SECURE_HSTS_SECONDS settings).
+- Option to run with Django's built-in server (runserver) or Gunicorn for production.
+- Ability to override environment variables without modifying the source code.
 
-- Режим разработки с DEBUG=true.
-- Продакшн-режим с повышенной безопасностью (настройка CSRF_COOKIE_SECURE и SECURE_HSTS_SECONDS).
-- Использование встроенного сервера Django (runserver) или Gunicorn для продакшн-среды.
-- Возможность переопределения переменных окружения без изменения исходного кода.
+## Project Structure
 
-## Структура проекта
+- `src/core` - Core Django settings, including middleware and database configuration.
+- `src/users` - Application for managing users.
+- `src/tests` - Tests covering application logic and integration with external services.
+- `docker` - Directory with Docker Compose configuration, including settings for PostgreSQL and ClickHouse.
 
-- src/core - базовые настройки Django, включая middleware и конфигурацию баз данных.
-- src/users - приложение для управления пользователями.
-- src/tests - тесты, покрывающие логику приложения и интеграцию с внешними сервисами.
-- docker - директория с конфигурацией Docker Compose, включая настройки для PostgreSQL и ClickHouse.
+## Feedback
 
-## Обратная связь
+If you have any suggestions or comments on the project, please create an issue or pull request in the repository. We welcome any feedback!
 
-Если у вас есть предложения или замечания по проекту, создайте issue или pull request в репозитории. Мы будем рады любому фидбеку!
-
-## Автор
+## Author
