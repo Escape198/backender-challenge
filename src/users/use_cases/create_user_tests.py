@@ -1,5 +1,6 @@
 import uuid
-import logging
+import time
+import structlog
 from collections.abc import Generator
 
 import pytest
@@ -9,7 +10,7 @@ from django.conf import settings
 from users.use_cases import CreateUser, CreateUserRequest
 from core.event_log_client import EventLogClient
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 pytestmark = [pytest.mark.django_db]
 
@@ -52,7 +53,6 @@ def test_invalid_user_creation(
     request = CreateUserRequest(email=email, first_name=first_name, last_name=last_name)
     response = f_use_case.execute(request)
 
-    # Verifying the response
     assert response.result is None
     assert response.error == expected_error
 
@@ -84,10 +84,6 @@ def test_event_log_entry_created_in_clickhouse(
     f_clickhouse_event_table_name: str,
 ) -> None:
     """Test that a 'user_created' event is logged in the ClickHouse event log table."""
-    import uuid
-    from django.conf import settings
-    import time
-
     email = f'test_{uuid.uuid4()}@email.com'
     first_name = "Test"
     last_name = "Testovich"
@@ -121,21 +117,16 @@ def test_no_event_logged_on_failure(
     f_clickhouse_event_table_name: str,
 ) -> None:
     """Test that no event is logged in ClickHouse if user creation fails."""
-    print(f"Using table: {f_clickhouse_event_table_name}")
     invalid_email = "invalid_email"
     request = CreateUserRequest(email=invalid_email, first_name="Test", last_name="Testovich")
 
     response = f_use_case.execute(request)
 
-    # Ensuring the use case fails
     assert response.result is None
     assert response.error == "Invalid email format"
 
-    # Ensuring no events are logged
     log_query = f"SELECT event_type FROM {settings.CLICKHOUSE_EVENT_LOG_TABLE_NAME} WHERE event_context LIKE '%invalid_email%'"
 
-    # Correct method to execute the query
     result = f_ch_client.execute(log_query)
 
-    # Check that the result is empty
     assert not result
