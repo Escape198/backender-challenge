@@ -122,12 +122,10 @@ class CreateUser(UseCase):
         transaction_id = str(uuid4())
         logger.info("Starting user creation process", transaction_id=transaction_id, email=request.email)
 
-        # Validate request data
         validation_error = self._validate_request(request)
         if validation_error:
             return validation_error
 
-        # Proceed to user creation
         try:
             with transaction.atomic():
                 return self._create_user(request, transaction_id)
