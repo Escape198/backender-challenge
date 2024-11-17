@@ -26,17 +26,22 @@ class UseCase(ABC):
 
     def execute(self, request: BaseRequest) -> BaseResponse:
         """Executes the Use Case."""
-        with structlog.contextvars.bound_contextvars(**self._get_context_vars(request)):
-            logger.info("Executing use case", use_case=self.__class__.__name__)
+        context_vars = self._get_context_vars(request)
+        with structlog.contextvars.bound_contextvars(**context_vars):
+            logger.info("Executing use case", use_case=self.__class__.__name__, **context_vars)
             try:
                 return self._execute(request)
             except Exception as e:
-                logger.error("Error executing use case", error=str(e), use_case=self.__class__.__name__)
+                logger.error("Error executing use case", error=str(e), use_case=self.__class__.__name__, **context_vars)
                 return self._error_response(str(e))
 
     def _get_context_vars(self, request: BaseRequest) -> Dict[str, Any]:
         """Generates context variables for logging."""
-        return {"use_case": self.__class__.__name__}
+        # Include a unique request ID for tracing
+        return {
+            "use_case": self.__class__.__name__,
+            "request_id": str(id(request))  # Use the memory ID or another unique identifier
+        }
 
     @abstractmethod
     def _execute(self, request: BaseRequest) -> BaseResponse:
@@ -44,7 +49,7 @@ class UseCase(ABC):
 
     def _error_response(self, error_message: str) -> BaseResponse:
         """Logs an error and returns a response."""
-        logger.error(error_message)
+        logger.error("Error response", error=error_message)
         return BaseResponse(error=error_message)
 
 
@@ -64,9 +69,11 @@ class TransactionalUseCase(UseCase):
 
         Overrides the base execute method to wrap the operation in an atomic block.
         """
-        logger.info("Executing transactional use case", use_case=self.__class__.__name__)
-        try:
-            return super().execute(request)
-        except Exception as e:
-            logger.error("Error executing transactional use case", error=str(e), use_case=self.__class__.__name__)
-            raise
+        context_vars = self._get_context_vars(request)
+        with structlog.contextvars.bound_contextvars(**context_vars):
+            logger.info("Executing transactional use case", use_case=self.__class__.__name__, **context_vars)
+            try:
+                return super().execute(request)
+            except Exception as e:
+                logger.error("Error executing transactional use case", error=str(e), use_case=self.__class__.__name__, **context_vars)
+                raise
