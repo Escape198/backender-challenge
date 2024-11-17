@@ -10,8 +10,10 @@ from core.base_model import Model
 from core.transactional_outbox import transactional_outbox
 from core.use_case import UseCase, BaseRequest, BaseResponse
 from users.models import User
+from users.tasks import log_user_creation
 
 logger = structlog.get_logger(__name__)
+
 
 class UserCreated(Model):
     email: str
@@ -92,12 +94,12 @@ class CreateUser(UseCase):
                         email=user.email
                     )
 
-                    event_data.append(
-                        UserCreated(
-                            email=user.email,
-                            first_name=user.first_name,
-                            last_name=user.last_name
-                        )
+                    log_user_creation.delay(
+                        user_id=user.id, event_data={
+                            "email": user.email,
+                            "first_name": user.first_name,
+                            "last_name": user.last_name,
+                        },
                     )
                     return CreateUserResponse(result=user)
 
