@@ -7,13 +7,18 @@ services:
     depends_on:
       - db
       - clickhouse
+      - redis
     command: [ "../docker/wait-for-it.sh", "db:5432", "--", "python", "manage.py", "runserver", "0.0.0.0:8000" ]
     ports:
       - "8000:8000"
+    environment:
+      CLICKHOUSE_HOST: clickhouse
     volumes:
       - app_static_files:/srv/app/static:rw
       - app_media_files:/srv/app/media:rw
       - .:/srv/app
+    networks:
+      - default
 
   db:
     tty: true
@@ -29,23 +34,44 @@ services:
       DATABASE_NAME: test_database
     ports:
       - "5432:5432"
+    networks:
+      - default
 
   redis:
     image: redis:6-alpine
-    networks:
-      - default
     ports:
       - "6379:6379"
+    networks:
+      - default
 
   clickhouse:
-    image: "clickhouse/clickhouse-server:23.8.2.7-alpine"
+    container_name: clickhouse
+    image: clickhouse/clickhouse-server:23.8.2.7-alpine
     ports:
       - "8123:8123"
+    environment:
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: ""
+    networks:
+      - default
     volumes:
       - ./docker/clickhouse/init.sql:/docker-entrypoint-initdb.d/init.sql
 
+  celery:
+    build: .
+    depends_on:
+      - redis
+      - app
+    command: celery -A core worker --loglevel=info
+    volumes:
+      - .:/srv/app
+    networks:
+      - default
 
 volumes:
   dev-db-data: {}
-  app_media_files: { }
-  app_static_files: { }
+  app_media_files: {}
+  app_static_files: {}
+
+networks:
+  default:
