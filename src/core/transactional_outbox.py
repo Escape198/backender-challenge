@@ -8,20 +8,25 @@ from core.base_model import Model
 logger = get_logger(__name__)
 
 
-@contextmanager
-def transactional_outbox(event_data: list[Model]):
-    """
-    A context manager for publishing events in transactional outbox style.
+class transactional_outbox:
+    """Context manager for transactional outbox logic."""
+    def __init__(self, event_data=None):
+        self.event_data = event_data or []
 
-    This manager ensures that events are only published if the transaction was successful.
-    """
-    try:
-        with transaction.atomic():
-            yield
-            logger.info("Publishing events via transactional outbox", event_count=len(event_data))
-            with EventLogClient.init() as client:
-                client.insert(event_data)
-            logger.info("Events successfully published")
-    except Exception as e:
-        logger.error("Error in transactional outbox", error=str(e))
-        raise
+    def __enter__(self):
+        logger.debug("Starting transactional outbox")
+        transaction.set_autocommit(False)  # Explicitly disable autocommit
+        return self.event_data
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type:
+            logger.error(
+                "Error in transactional outbox",
+                error=str(exc_val),
+                exc_type=exc_type.__name__,
+            )
+            transaction.rollback()  # Rollback on error
+        else:
+            logger.debug("Committing transactional outbox")
+            transaction.commit()  # Commit on success
+        transaction.set_autocommit(True)  # Restore autocommit
