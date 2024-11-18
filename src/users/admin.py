@@ -1,5 +1,6 @@
 from django.contrib import admin
 from users.models import User
+from core.log_service import log_user_creation_event
 
 
 @admin.register(User)
@@ -17,3 +18,18 @@ class UserAdmin(admin.ModelAdmin):
         ('Permissions', {'fields': ('is_active', 'is_staff')}),
         ('Important Dates', {'fields': ('last_login',)}),
     )
+
+    def save_model(self, request, obj, form, change):
+        """
+        Overrides save_model to log user creation events in ClickHouse.
+        """
+        super().save_model(request, obj, form, change)
+        if not change:
+            log_user_creation_event(
+                user_id=obj.id,
+                event_data={
+                    "email": obj.email,
+                    "first_name": obj.first_name,
+                    "last_name": obj.last_name,
+                }
+            )

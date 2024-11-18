@@ -8,9 +8,10 @@ from django.db import transaction
 
 from core.base_model import Model
 from core.transactional_outbox import transactional_outbox
+from core.log_service import log_user_creation_event
 from core.use_case import UseCase, BaseRequest, BaseResponse
 from users.models import User
-from users.tasks import log_user_creation
+from users.tasks.tasks import log_user_creation
 
 logger = structlog.get_logger(__name__)
 
@@ -87,19 +88,10 @@ class CreateUser(UseCase):
                 )
 
                 if created:
-                    logger.info(
-                        "User created successfully",
-                        transaction_id=transaction_id,
+                    logger.info("User created successfully", transaction_id=transaction_id, user_id=user.id)
+                    log_user_creation_event(
                         user_id=user.id,
-                        email=user.email
-                    )
-
-                    log_user_creation.delay(
-                        user_id=user.id, event_data={
-                            "email": user.email,
-                            "first_name": user.first_name,
-                            "last_name": user.last_name,
-                        },
+                        event_data={"email": user.email, "first_name": user.first_name, "last_name": user.last_name, }
                     )
                     return CreateUserResponse(result=user)
 
