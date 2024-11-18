@@ -82,32 +82,24 @@ class CreateUser(UseCase):
 
         try:
             with transactional_outbox(event_data=event_data):
-                user, created = User.objects.get_or_create(
-                    email=request.email,
-                    defaults={"first_name": request.first_name, "last_name": request.last_name},
-                )
-
-                if created:
-                    logger.info("User created successfully", transaction_id=transaction_id, user_id=user.id)
+                user = User.objects.filter(email=request.email).first()
+                if not user:
+                    user = User.objects.create(
+                        email=request.email, first_name=request.first_name, last_name=request.last_name, )
+                    logger.info(
+                        "User created successfully", transaction_id=transaction_id, user_id=user.id, email=user.email, )
                     log_user_creation_event(
-                        user_id=user.id,
-                        event_data={"email": user.email, "first_name": user.first_name, "last_name": user.last_name, }
-                    )
+                        user_id=user.id, event_data={"email": user.email, "first_name": user.first_name,
+                            "last_name": user.last_name, }, )
                     return CreateUserResponse(result=user)
 
                 logger.warning(
-                    "User already exists",
-                    transaction_id=transaction_id,
-                    email=request.email
-                )
+                    "User already exists", transaction_id=transaction_id, email=request.email, )
                 return self._error_response("User with this email already exists")
 
         except Exception as outbox_error:
             logger.error(
-                "Transactional outbox failed",
-                transaction_id=transaction_id,
-                error=str(outbox_error)
-            )
+                "Transactional outbox failed", transaction_id=transaction_id, error=str(outbox_error), )
             raise
 
     def _execute(self, request: CreateUserRequest) -> CreateUserResponse:
