@@ -1,8 +1,8 @@
+from contextlib import contextmanager
 from django.db import transaction
-from structlog import get_logger
+import structlog
 
-
-logger = get_logger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 class transactional_outbox:
@@ -13,10 +13,18 @@ class transactional_outbox:
 
     def __enter__(self):
         logger.debug("Starting transactional outbox", transaction_id=self.transaction_id)
-        # Ensure the transaction is in atomic mode for safe commit/rollback handling
         self.atomic_transaction = transaction.atomic()
-        self.atomic_transaction.__enter__()  # Start the atomic block
-        return self.event_data
+        self.atomic_transaction.__enter__()
+        return self
+
+    def add_event(self, event_type: str, event_context: dict):
+        """Adds an event to the outbox."""
+        self.event_data.append({
+            "event_type": event_type,
+            "event_context": event_context,
+            "transaction_id": self.transaction_id,
+        })
+        logger.info("Event added to outbox", event_type=event_type, transaction_id=self.transaction_id)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type:
@@ -27,7 +35,6 @@ class transactional_outbox:
                 exc_type=exc_type.__name__,
             )
             self.atomic_transaction.__exit__(exc_type, exc_val, exc_tb)
-
             transaction.rollback()
         else:
             logger.debug(
@@ -35,4 +42,5 @@ class transactional_outbox:
                 transaction_id=self.transaction_id
             )
             self.atomic_transaction.__exit__(None, None, None)
-        transaction.set_autocommit(True)
+
+            logger.info("Outbox committed successfully", transaction_id=self.transaction_id)
