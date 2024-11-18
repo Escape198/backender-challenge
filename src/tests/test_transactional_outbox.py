@@ -1,7 +1,7 @@
 import pytest
-from unittest.mock import patch, call
+from unittest.mock import patch
 from celery.exceptions import Retry
-from core.transactional_outbox import transactional_outbox
+from outbox.transactional_outbox import transactional_outbox
 from users.models import User
 from users.tasks.tasks import log_user_creation
 

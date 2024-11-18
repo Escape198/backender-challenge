@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 
 from core.base_model import Model
-from core.transactional_outbox import transactional_outbox
+from outbox import transactional_outbox
 from core.log_service import log_user_creation_event
 from core.use_case import UseCase, BaseRequest
 from users.models import User
