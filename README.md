@@ -126,15 +126,6 @@ make lint
 
 ---
 
-## Known Limitations and Planned Improvements
-
-- **Event Duplication**: Current implementation of the outbox pattern may lead to duplicate events if a worker crashes mid-task. Improvements to handle this scenario are planned.
-- **Tracing**: While `structlog` provides detailed logs, integration with tools like OpenTelemetry for full tracing support is under consideration.
-- **Enhanced Testing**: Increasing test coverage, especially for ClickHouse integrations, and reducing reliance on mocks.
-- **Environment Configuration**: Some variables (e.g., `REDIS_URL`) are hardcoded and should be dynamically loaded from `.env`.
-
----
-
 ## Feedback and Contribution
 
 We welcome feedback and contributions! If you have suggestions, issues, or would like to contribute to this project:
