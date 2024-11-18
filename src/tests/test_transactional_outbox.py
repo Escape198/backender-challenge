@@ -1,6 +1,9 @@
+import pytest
+from unittest.mock import patch, call
+from celery.exceptions import Retry
 from core.transactional_outbox import transactional_outbox
 from users.models import User
-import pytest
+from users.tasks.tasks import log_user_creation
 
 
 @pytest.mark.django_db
@@ -31,3 +34,26 @@ def test_transactional_outbox_rollback():
 
     assert not User.objects.filter(email=user_data["email"]).exists()
     assert len(event_data) == 0
+
+
+@pytest.mark.django_db
+def test_log_user_creation_transactional():
+    """
+    Test that log_user_creation task respects transactional safety.
+    Ensures no duplicate events are logged in ClickHouse in case of retries.
+    """
+    event_data = {"email": "test@example.com", "first_name": "Test", "last_name": "User", }
+
+    with patch("core.event_log_client.EventLogClient.insert") as mock_insert, patch(
+        "users.tasks.tasks.log_user_creation.retry", side_effect=Retry("Task can be retried")
+    ) as mock_retry:
+        mock_insert.side_effect = Exception("Simulated failure")
+
+        try:
+            log_user_creation(user_id=1, event_data=event_data)
+        except Retry:
+            ...
+
+        mock_insert.assert_called_once_with([event_data])
+
+        mock_retry.assert_called_once()
