@@ -1,15 +1,15 @@
-from uuid import uuid4
 from typing import Any
+from uuid import uuid4
 
 import structlog
-from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.db import transaction
 
 from core.base_model import Model
-from outbox import transactional_outbox
 from core.log_service import log_user_creation_event
-from core.use_case import UseCase, BaseRequest
+from core.use_case import BaseRequest, UseCase
+from outbox import transactional_outbox
 from users.models import User
 
 logger = structlog.get_logger(__name__)
@@ -86,21 +86,21 @@ class CreateUser(UseCase):
                 user = User.objects.filter(email=request.email).first()
                 if not user:
                     user = User.objects.create(
-                        email=request.email, first_name=request.first_name, last_name=request.last_name, )
+                        email=request.email, first_name=request.first_name, last_name=request.last_name )
                     logger.info(
-                        "User created successfully", transaction_id=transaction_id, user_id=user.id, email=user.email, )
+                        "User created successfully", transaction_id=transaction_id, user_id=user.id, email=user.email )
                     log_user_creation_event(
                         user_id=user.id, event_data={"email": user.email, "first_name": user.first_name,
-                            "last_name": user.last_name, }, )
+                            "last_name": user.last_name } )
                     return CreateUserResponse(result=user)
 
                 logger.warning(
-                    "User already exists", transaction_id=transaction_id, email=request.email, )
+                    "User already exists", transaction_id=transaction_id, email=request.email )
                 return self._error_response("User with this email already exists")
 
         except Exception as outbox_error:
             logger.error(
-                "Transactional outbox failed", transaction_id=transaction_id, error=str(outbox_error), )
+                "Transactional outbox failed", transaction_id=transaction_id, error=str(outbox_error) )
             raise
 
     def _execute(self, request: CreateUserRequest) -> CreateUserResponse:

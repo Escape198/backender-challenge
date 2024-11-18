@@ -1,9 +1,10 @@
+import structlog
 from celery import shared_task
 from django.db import transaction
-from core.log_service import log_user_creation_event
+
 from core.event_log_client import EventLogClient
+from core.log_service import log_user_creation_event
 from outbox.models import OutboxEvent
-import structlog
 
 logger = structlog.get_logger(__name__)
 
@@ -15,13 +16,13 @@ def log_user_creation(user_id, event_data):
         with transaction.atomic():
             event, created = OutboxEvent.objects.get_or_create(
                 user_id=user_id,
-                defaults={"event_data": event_data, "status": "pending"}
+                defaults={"event_data": event_data, "status": "pending"},
             )
 
             if not created and event.status == "processed":
                 logger.warning(
                     "Event already processed, skipping duplicate",
-                    user_id=user_id, event_id=event.id
+                    user_id=user_id, event_id=event.id,
                 )
                 return
 

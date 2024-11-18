@@ -1,11 +1,10 @@
-from typing import Any, Dict
 from abc import ABC, abstractmethod
+from typing import Any
 
 import structlog
 from django.db import transaction
 
 from core.base_model import Model
-
 
 logger = structlog.get_logger(__name__)
 
@@ -35,12 +34,12 @@ class UseCase(ABC):
                 logger.error("Error executing use case", error=str(e), use_case=self.__class__.__name__, **context_vars)
                 return self._error_response(str(e))
 
-    def _get_context_vars(self, request: BaseRequest) -> Dict[str, Any]:
+    def _get_context_vars(self, request: BaseRequest) -> dict[str, Any]:
         """Generates context variables for logging."""
         # Include a unique request ID for tracing
         return {
             "use_case": self.__class__.__name__,
-            "request_id": str(id(request))  # Use the memory ID or another unique identifier
+            "request_id": str(id(request)),  # Use the memory ID or another unique identifier
         }
 
     @abstractmethod

@@ -1,6 +1,7 @@
 from django.contrib import admin
-from users.models import User
+
 from core.log_service import log_user_creation_event
+from users.models import User
 
 
 @admin.register(User)
@@ -31,5 +32,5 @@ class UserAdmin(admin.ModelAdmin):
                     "email": obj.email,
                     "first_name": obj.first_name,
                     "last_name": obj.last_name,
-                }
+                },
             )

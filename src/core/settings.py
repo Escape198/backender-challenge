@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-from typing import List
 
 import environ
 import sentry_sdk
@@ -23,7 +22,7 @@ DEBUG = env.bool("DEBUG", default=False)
 ENVIRONMENT = env("ENVIRONMENT", default="Local")
 SECRET_KEY = env("SECRET_KEY", default="change-me-in-production")
 
-ALLOWED_HOSTS: List[str] = env.list("ALLOWED_HOSTS", default=["*"])
+ALLOWED_HOSTS: list[str] = env.list("ALLOWED_HOSTS", default=["*"])
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -34,7 +33,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # Project apps
     "users",
-    "outbox"
+    "outbox",
 ]
 
 MIDDLEWARE = [

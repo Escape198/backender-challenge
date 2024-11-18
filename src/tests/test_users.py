@@ -1,8 +1,4 @@
-import uuid
 import pytest
-from django.conf import settings
-
-from users.use_cases import CreateUserRequest
 
 '''
 @pytest.mark.django_db

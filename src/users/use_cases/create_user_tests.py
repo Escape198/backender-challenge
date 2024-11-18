@@ -1,14 +1,14 @@
-import uuid
 import time
-import structlog
+import uuid
 from collections.abc import Generator
 
 import pytest
+import structlog
 from clickhouse_driver import Client as ClickhouseClient
 from django.conf import settings
 
-from users.use_cases import CreateUser, CreateUserRequest
 from core.event_log_client import EventLogClient
+from users.use_cases import CreateUser, CreateUserRequest
 
 logger = structlog.get_logger(__name__)
 
@@ -125,7 +125,9 @@ def test_no_event_logged_on_failure(
     assert response.result is None
     assert response.error == "Invalid email format"
 
-    log_query = f"SELECT event_type FROM {settings.CLICKHOUSE_EVENT_LOG_TABLE_NAME} WHERE event_context LIKE '%invalid_email%'"
+    log_query = (f"SELECT event_type "
+                 f"FROM {settings.CLICKHOUSE_EVENT_LOG_TABLE_NAME} "
+                 f"WHERE event_context LIKE '%invalid_email%'")
 
     result = f_ch_client.execute(log_query)
 

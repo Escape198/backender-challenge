@@ -1,5 +1,5 @@
-from django.db import transaction
 import structlog
+from django.db import transaction
 
 logger = structlog.get_logger(__name__)
 

@@ -1,7 +1,9 @@
-import pytest
 from unittest.mock import patch
-from users.tasks.tasks import log_user_creation
+
+import pytest
+
 from users.models import User
+from users.tasks.tasks import log_user_creation
 
 
 @pytest.mark.django_db

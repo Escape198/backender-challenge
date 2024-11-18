@@ -1,23 +1,22 @@
+import uuid
 from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Any, List, Tuple
+from typing import Any
+
 import structlog
 from clickhouse_driver import Client
 from clickhouse_driver.errors import Error
 from django.conf import settings
-import uuid
 
 from core.base_model import Model
 
 logger = structlog.get_logger(__name__)
 
-EVENT_LOG_COLUMNS = ["event_type", "event_date_time", "environment", "event_context", ]
+EVENT_LOG_COLUMNS = ["event_type", "event_date_time", "environment", "event_context" ]
 
 
 class EventLogClient:
-    def __init__(
-            self, client: Client, schema: str, table: str, environment: str, trace_id: str = None
-    ) -> None:
+    def __init__(self, client: Client, schema: str, table: str, environment: str, trace_id: str = None) -> None:
         self._client = client
         self._schema = schema
         self._table = table
@@ -32,21 +31,29 @@ class EventLogClient:
 
         trace_id = str(uuid.uuid4())
         client = Client(
-            host=settings.CLICKHOUSE_HOST, port=settings.CLICKHOUSE_PORT, user=settings.CLICKHOUSE_USER,
-            password=settings.CLICKHOUSE_PASSWORD, database=settings.CLICKHOUSE_SCHEMA, connect_timeout=30,
-            send_receive_timeout=10
+            host=settings.CLICKHOUSE_HOST,
+            port=settings.CLICKHOUSE_PORT,
+            user=settings.CLICKHOUSE_USER,
+            password=settings.CLICKHOUSE_PASSWORD,
+            database=settings.CLICKHOUSE_SCHEMA,
+            connect_timeout=30,
+            send_receive_timeout=10,
         )
         try:
             yield cls(
-                client=client, schema=settings.CLICKHOUSE_SCHEMA, table=settings.CLICKHOUSE_EVENT_LOG_TABLE_NAME,
-                environment=settings.ENVIRONMENT, trace_id=trace_id, )
+                client=client,
+                schema=settings.CLICKHOUSE_SCHEMA,
+                table=settings.CLICKHOUSE_EVENT_LOG_TABLE_NAME,
+                environment=settings.ENVIRONMENT,
+                trace_id=trace_id,
+            )
         except Exception as e:
             logger.error("Error while initializing ClickHouse client", error=str(e), trace_id=trace_id)
             raise
         finally:
             client.disconnect()
 
-    def insert(self, data: List[Model], batch_size: int = 100) -> None:
+    def insert(self, data: list[Model], batch_size: int = 100) -> None:
         """Inserts events into ClickHouse with batching support."""
         if not self.is_connected():
             raise Error("ClickHouse is not available")
@@ -56,12 +63,12 @@ class EventLogClient:
             for i in range(0, len(data), batch_size):
                 batch = data[i:i + batch_size]
                 logger.info(
-                    "Attempting batch insert", batch_size=len(batch), columns=EVENT_LOG_COLUMNS, trace_id=self._trace_id
+                    "Attempting batch insert", batch_size=len(batch), columns=EVENT_LOG_COLUMNS, trace_id=self._trace_id,
                 )
 
                 insert_query = f"""
-                    INSERT INTO {self._schema}.{self._table} ({', '.join(EVENT_LOG_COLUMNS)})
-                    VALUES
+                INSERT INTO {self._schema}.{self._table} ({', '.join(EVENT_LOG_COLUMNS)})
+                VALUES
                 """
                 formatted_data = self._convert_data(batch)
 
@@ -72,19 +79,19 @@ class EventLogClient:
             logger.error("Failed to insert batch into ClickHouse", error=str(e), trace_id=self._trace_id)
             raise
 
-    def execute_query(self, query: str) -> List[tuple[Any]]:
+    def execute_query(self, query: str) -> list[tuple[Any]]:
         """Execute a request to ClickHouse using execute."""
         logger.debug("Executing ClickHouse query", query=query, trace_id=self._trace_id)
         try:
             result = self._client.execute(query)
 
-            converted_result: List[Tuple[Any, ...]] = [tuple(row) for row in result]
+            converted_result: list[tuple[Any, ...]] = [tuple(row) for row in result]
             logger.info("Query executed successfully", row_count=len(converted_result), trace_id=self._trace_id)
             return converted_result
 
         except Error as e:
             logger.error(
-                "Failed to execute ClickHouse query", error=str(e), query=query, trace_id=self._trace_id, )
+                "Failed to execute ClickHouse query", error=str(e), query=query, trace_id=self._trace_id )
             raise
 
     def is_connected(self) -> bool:
@@ -97,6 +104,6 @@ class EventLogClient:
             logger.error("ClickHouse connection failed", error=str(e), trace_id=self._trace_id)
             return False
 
-    def _convert_data(self, data: List[Model]) -> List[Tuple]:
+    def _convert_data(self, data: list[Model]) -> list[tuple]:
         """Converts a list of Model instances into the format suitable for insertion into ClickHouse."""
         return [(event.event_type, event.event_date_time, self._environment, event.event_context) for event in data]
