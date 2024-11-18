@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch
-from users.tasks import log_user_creation
+from users.tasks.tasks import log_user_creation
 from users.models import User
 
 

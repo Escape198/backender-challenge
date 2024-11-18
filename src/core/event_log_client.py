@@ -29,13 +29,19 @@ class EventLogClient:
         logger.info("Connecting to ClickHouse", host=settings.CLICKHOUSE_HOST, port=settings.CLICKHOUSE_PORT)
 
         client = Client(
-            host=settings.CLICKHOUSE_HOST, port=settings.CLICKHOUSE_PORT, user=settings.CLICKHOUSE_USER,
-            password=settings.CLICKHOUSE_PASSWORD, database=settings.CLICKHOUSE_SCHEMA, connect_timeout=30,
+            host=settings.CLICKHOUSE_HOST,
+            port=9000,
+            user=settings.CLICKHOUSE_USER,
+            password=settings.CLICKHOUSE_PASSWORD,
+            database=settings.CLICKHOUSE_SCHEMA,
+            connect_timeout=30,
             send_receive_timeout=10
         )
         try:
             yield cls(
-                client=client, schema=settings.CLICKHOUSE_SCHEMA, table=settings.CLICKHOUSE_EVENT_LOG_TABLE_NAME,
+                client=client,
+                schema=settings.CLICKHOUSE_SCHEMA,
+                table=settings.CLICKHOUSE_EVENT_LOG_TABLE_NAME,
                 environment=settings.ENVIRONMENT, )
         except Exception as e:
             logger.error("Error while initializing ClickHouse client", error=str(e))
@@ -43,13 +49,14 @@ class EventLogClient:
         finally:
             client.disconnect()
 
-    def insert(self, data: List[Model], batch_size: int = 100) -> None:
+    def insert(self, data: Any, batch_size: int = 100) -> None:
         """
         Inserts events into ClickHouse with batching support.
 
-        :param data: List of events to insert.
+        :param data: List of events to insert (or a single event).
         :param batch_size: Batch size for batch insertion (default is 100).
         """
+
         if not self.is_connected():
             raise Error("ClickHouse is not available")
 
@@ -57,15 +64,18 @@ class EventLogClient:
         try:
             for i in range(0, len(data), batch_size):
                 batch = data[i:i + batch_size]
+                self._insert_batch(batch)
                 logger.info("Attempting batch insert", batch_size=len(batch), columns=EVENT_LOG_COLUMNS)
 
-                # Prepare parameterized query for batch insert
                 insert_query = f"""
-                    INSERT INTO {self._schema}.{self._table} ({', '.join(EVENT_LOG_COLUMNS)})
-                    VALUES
-                """
-                # Prepare the data to be inserted
+                        INSERT INTO {self._schema}.{self._table} ({', '.join(EVENT_LOG_COLUMNS)})
+                        VALUES
+                    """
+
                 formatted_data = self._convert_data(batch)
+
+                # Log the data being inserted to make sure we're only inserting once
+                logger.debug("Inserting data", data=formatted_data)
 
                 self._client.execute(insert_query, formatted_data)
                 logger.info("Batch inserted successfully", batch_size=len(batch))
@@ -89,6 +99,14 @@ class EventLogClient:
                 "Failed to execute ClickHouse query", error=str(e), query=query, )
             raise
 
+    def _insert_batch(self, batch):
+        query = "INSERT INTO event_log (event_type, event_date_time, environment, event_context) VALUES"
+        values = []
+        for event in batch:
+            values.append((event['event_type'], event['event_date_time'], event['environment'], event['event_context']))
+
+        self._client.execute(query, values)
+
     def is_connected(self) -> bool:
         """Check if the client can connect to ClickHouse."""
         try:
@@ -100,7 +118,16 @@ class EventLogClient:
             return False
 
     def _convert_data(self, data: List[Model]) -> List[Tuple]:
-        """
-        Converts a list of Model instances into the format suitable for insertion into ClickHouse.
-        """
-        return [(event.event_type, event.event_date_time, self._environment, event.event_context) for event in data]
+        """Converts a list of Model instances into the format suitable for insertion into ClickHouse."""
+        formatted_data = []
+        for event in data:
+            if isinstance(event, dict):
+                formatted_data.append(
+                    (event.get("event_type"), event.get("event_date_time"), self._environment,
+                     event.get("event_context"),)
+                )
+            else:
+                formatted_data.append(
+                    (event.event_type, event.event_date_time, self._environment, event.event_context,)
+                )
+        return formatted_data
