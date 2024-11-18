@@ -3,10 +3,8 @@ from unittest.mock import patch
 from celery.exceptions import Retry
 from outbox.transactional_outbox import transactional_outbox
 from users.models import User
-from users.tasks.tasks import log_user_creation
 from outbox.models import OutboxEvent
 from users.tasks.tasks import log_user_creation
-from core.event_log_client import EventLogClient
 
 
 @pytest.mark.django_db
