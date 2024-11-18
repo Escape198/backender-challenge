@@ -1,6 +1,5 @@
 from celery import shared_task
 from django.db import transaction
-
 from core.log_service import log_user_creation_event
 from core.event_log_client import EventLogClient
 from outbox.models import OutboxEvent
@@ -14,15 +13,26 @@ def log_user_creation(user_id, event_data):
     """Task to log user creation events in ClickHouse with transactional outbox."""
     try:
         with transaction.atomic():
+            event, created = OutboxEvent.objects.get_or_create(
+                user_id=user_id,
+                defaults={"event_data": event_data, "status": "pending"}
+            )
 
-            event = OutboxEvent.objects.create(user_id=user_id, event_data=event_data, status='pending')
-            logger.info("Outbox event created", event_id=event.id)
+            if not created and event.status == "processed":
+                logger.warning(
+                    "Event already processed, skipping duplicate",
+                    user_id=user_id, event_id=event.id
+                )
+                return
 
+            logger.info("Outbox event created or retrieved", event_id=event.id)
+
+            # Логируем событие в ClickHouse
             with EventLogClient.init() as client:
                 log_user_creation_event(user_id, event_data)
 
-            event.status = 'processed'
-            event.save(update_fields=['status'])
+            event.status = "processed"
+            event.save(update_fields=["status"])
 
             logger.info("User creation event logged successfully", user_id=user_id, event_id=event.id)
 
