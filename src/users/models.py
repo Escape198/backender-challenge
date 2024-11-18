@@ -5,32 +5,21 @@ from core.models import TimeStampedModel
 
 
 class User(TimeStampedModel, AbstractBaseUser):
-    """
-    Custom User model inheriting from AbstractBaseUser and TimeStampedModel.
-    Provides the core fields required for authentication and user management.
-    """
-    email = models.EmailField(unique=True, db_index=True, help_text="The primary email used for user login.")
-    is_staff = models.BooleanField(default=False, help_text="Indicates if the user has admin privileges")
-    is_active = models.BooleanField(default=True, help_text="Indicates if the user account is active")
-    first_name = models.CharField(max_length=255, blank=True, null=True, help_text="User's first name")
-    last_name = models.CharField(max_length=255, blank=True, null=True, help_text="User's last name")
+    email = models.EmailField(unique=True, db_index=True)
+    is_staff = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    first_name = models.CharField(max_length=255, blank=True, null=True)
+    last_name = models.CharField(max_length=255, blank=True, null=True)
 
     EMAIL_FIELD = 'email'
     USERNAME_FIELD = 'email'
 
-    class Meta:
+    class Meta(AbstractBaseUser.Meta):
         verbose_name = 'User'
         verbose_name_plural = 'Users'
 
-        indexes = [
-            models.Index(fields=['is_active'], name='user_is_active_idx'),
-            models.Index(fields=['is_staff'], name='user_is_staff_idx'),
-        ]
-
     def __str__(self) -> str:
-        """
-        String representation of the user.
-        Returns the user's full name if available, otherwise their email.
-        """
-        full_name = " ".join(filter(None, [self.first_name, self.last_name]))
-        return full_name or self.email
+        if all([self.first_name, self.last_name]):
+            return f'{self.first_name} {self.last_name}'
+
+        return self.email
